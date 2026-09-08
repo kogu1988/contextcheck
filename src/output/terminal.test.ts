@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { renderReport } from "./terminal.js";
+import { renderCompactReport, renderReport } from "./terminal.js";
 import { makeFinding } from "../analyzer/rules/mapping.js";
 import type { AnalysisReport } from "../types/report.js";
 
@@ -87,5 +87,57 @@ describe("renderReport", () => {
     expect(out.toLowerCase()).not.toContain("wasted");
     expect(out.toLowerCase()).not.toContain("%8");
     expect(out.toLowerCase()).not.toContain("better");
+  });
+});
+
+describe("renderCompactReport", () => {
+  const report: AnalysisReport = {
+    summary: {
+      configurationFiles: 5,
+      skills: 0,
+      estimatedTokens: 7840,
+      potentialContextOverhead: 210,
+    },
+    artifacts: [],
+    findings: [
+      makeFinding({
+        type: "large-file",
+        filePaths: [".cursor/rules/frontend.mdc"],
+        title: "Instruction file is unusually large",
+        description: "~2,430 tokens",
+      }),
+      makeFinding({
+        type: "high-stakes",
+        filePaths: ["CLAUDE.md"],
+        title: "Potentially high-stakes configuration",
+        description: "x",
+      }),
+    ],
+  };
+
+  it("answers count, size and attention quickly", () => {
+    const out = renderCompactReport(report);
+    expect(out).toContain("ContextCheck");
+    expect(out).toContain("5 configuration files");
+    expect(out).toContain("~7,840 estimated tokens");
+    expect(out).toContain("2 findings");
+    expect(out).toContain("[CONTEXT] Instruction file is unusually large");
+    expect(out).toContain(".cursor/rules/frontend.mdc");
+    expect(out).toContain("Summary: 5 files · 7,840 tokens · 2 findings");
+  });
+
+  it("uses correct singular/plural for findings", () => {
+    const one = renderCompactReport({
+      ...report,
+      findings: report.findings.slice(0, 1),
+    });
+    expect(one).toContain("1 finding");
+    expect(one).not.toContain("1 findings");
+  });
+
+  it("never claims wasted tokens or causal impact", () => {
+    const out = renderCompactReport(report);
+    expect(out.toLowerCase()).not.toContain("wasted");
+    expect(out.toLowerCase()).not.toContain("%8");
   });
 });

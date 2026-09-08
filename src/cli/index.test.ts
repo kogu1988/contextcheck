@@ -95,6 +95,15 @@ describe("CLI analyze integration", () => {
     process.exitCode = 0;
   });
 
+  it("renders a compact report with --compact", async () => {
+    await writeFile(join(root, "CLAUDE.md"), "Never commit credentials.\n");
+    const out = await captureStdout(() => analyzeAction({ compact: true }));
+    expect(out).toContain("ContextCheck");
+    expect(out).toContain("configuration files");
+    expect(out).toContain("Summary:");
+    expect(out).toContain("[CAUTION]");
+  });
+
   it("snapshot output is privacy-safe (no content field on disk)", async () => {
     await writeFile(join(root, "CLAUDE.md"), "# Rules\nsecret rule body\n");
     await captureStdout(() => snapshotAction());

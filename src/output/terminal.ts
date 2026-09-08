@@ -61,6 +61,74 @@ export function formatTokens(tokens: number): string {
   return Math.round(tokens).toLocaleString("en-US");
 }
 
+/**
+ * Compact human renderer — answers "how many, how big, what needs attention"
+ * at a glance. Pure presentation: it renders the same `AnalysisReport` the
+ * terminal renderer uses, adding no analysis behavior.
+ */
+export function renderCompactReport(report: AnalysisReport): string {
+  const s = report.summary;
+  const lines: string[] = [];
+  lines.push("ContextCheck");
+  lines.push("");
+  lines.push(`${s.configurationFiles} configuration files`);
+  lines.push(`~${formatTokens(s.estimatedTokens)} estimated tokens`);
+  lines.push("");
+  lines.push(
+    `${report.findings.length} ${plural(report.findings.length, "finding")}`,
+  );
+
+  if (report.findings.length > 0) {
+    lines.push("");
+    for (const finding of report.findings) {
+      lines.push(`${label(finding)} ${finding.title}`);
+      for (const path of finding.filePaths) {
+        lines.push(`  ${path}`);
+      }
+      const detail = compactDetail(finding);
+      if (detail) lines.push(`  ${detail}`);
+    }
+  } else {
+    lines.push("");
+    lines.push("No findings to report.");
+  }
+
+  lines.push("");
+  lines.push(
+    `Summary: ${s.configurationFiles} files · ${formatTokens(s.estimatedTokens)} tokens · ` +
+      `${report.findings.length} ${plural(report.findings.length, "finding")}`,
+  );
+
+  return lines.join("\n");
+}
+
+/** Simple singula/plural helper for output. */
+function plural(n: number, word: string): string {
+  return n === 1 ? word : `${word}s`;
+}
+
+/** Short one-line detail per finding for compact output. */
+function compactDetail(finding: Finding): string {
+  switch (finding.type) {
+    case "large-file": {
+      const m = finding.description.match(/~([\d,]+) tokens/);
+      return m ? `~${m[1]} tokens` : "large";
+    }
+    case "scoped-no-match":
+      return "no matching file changes in Git history window";
+    case "high-stakes":
+      return "review manually before modifying or removing";
+    case "duplicate":
+      return "identical content across files";
+    case "repetition":
+      return "section repeated across files";
+    case "context-overhead":
+      return "potential redundant context";
+    default:
+      return "";
+  }
+}
+
 /** Renders a snapshot diff in the Spec §30 format. */
 export function renderDiff(diff: SnapshotDiff): string {
   const lines: string[] = [];

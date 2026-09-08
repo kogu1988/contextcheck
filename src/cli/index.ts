@@ -12,7 +12,11 @@ import { version } from "../index.js";
 import { loadConfig } from "../config/load.js";
 import { runAnalyze } from "../analyzer/run.js";
 import { discover } from "../discovery/discover.js";
-import { renderDiff, renderReport } from "../output/terminal.js";
+import {
+  renderCompactReport,
+  renderDiff,
+  renderReport,
+} from "../output/terminal.js";
 import { serializeReport } from "../output/json.js";
 import {
   isValidFailThreshold,
@@ -38,6 +42,7 @@ function placeholder(commandName: string): void {
 export async function analyzeAction(opts: {
   verbose?: boolean;
   json?: boolean;
+  compact?: boolean;
   failOn?: string;
 }): Promise<void> {
   const rootPath = process.cwd();
@@ -47,6 +52,8 @@ export async function analyzeAction(opts: {
   if (opts.json) {
     // Privacy-safe DTO: raw configuration content is never serialized (Rule 23).
     process.stdout.write(`${serializeReport(report)}\n`);
+  } else if (opts.compact) {
+    process.stdout.write(`${renderCompactReport(report)}\n`);
   } else {
     process.stdout.write(`${renderReport(report, opts.verbose === true)}\n`);
   }
@@ -125,6 +132,7 @@ function buildProgram(): Command {
     .description("Discover and analyze AI coding configuration files")
     .option("--verbose", "show detailed findings")
     .option("--json", "output machine-readable JSON")
+    .option("--compact", "compact human-readable output")
     .option(
       "--fail-on <severity>",
       "fail with exit 1 on finding severity (info|notice|warning)",

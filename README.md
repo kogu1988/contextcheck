@@ -30,6 +30,9 @@ contextcheck analyze
 # Detaylı bulgular
 contextcheck analyze --verbose
 
+# Hızlı insan çıktısı (summary + findings)
+contextcheck analyze --compact
+
 # Makine tarafından okunabilir, privacy-safe JSON çıktısı
 contextcheck analyze --json
 
@@ -37,11 +40,20 @@ contextcheck analyze --json
 contextcheck analyze --json --fail-on notice
 ```
 
+Üç çıktı kontratı:
+
+```text
+contextcheck analyze          -> detaylı, varsayılan (spec §9)
+contextcheck analyze --compact -> hızlı insan çıktısı
+contextcheck analyze --json    -> CI / automation (privacy-safe)
+```
+
 ## Komutlar
 
 - `contextcheck analyze` — keşfet ve analiz et
 - `contextcheck analyze --verbose` — detaylı bulgular
 - `contextcheck analyze --json` — privacy-safe JSON (raw content yok)
+- `contextcheck analyze --compact` — hızlı/kompakt insan çıktısı
 - `contextcheck analyze --fail-on <info|notice|warning>` — eşik üstü finding'de exit 1
 - `contextcheck snapshot` — AI configuration snapshot oluştur
 - `contextcheck diff` — en son snapshot ile mevcut durumu karşılaştır
