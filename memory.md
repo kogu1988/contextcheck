@@ -374,4 +374,40 @@ proxmox:     2 bulgu, high-stakes=1 (eski 2 -> auth-only tek başına tetiklemiy
 - Test suite: 159 test (pilot false-positive regression'ları eklendi: react-dt
   'deploy', graphframes 'deploy', 'security gateways', 'deployment scripts',
   path-name-only no-trigger).
-- Sonraki adım: CLI UX / CI (high-stakes revizyonu tamam).  
+- Sonraki adım: CLI UX / CI (high-stakes revizyonu tamam).
+
+---
+
+## Snapshot/Diff v1 (gerçek repo doğrulaması)
+
+Kritik tespit: Snapshot'lar daha önce yalnızca artifact saklıyordu, findings
+YOK. v1'de snapshot'lara `findings`(opsiyonel, backward-compatible) eklendi ve
+diff; artifact + token + finding added/removed/changed gösterir hale geldi.
+
+Ayrıntılı davranış:
+- `buildSnapshot(artifacts, findings)` — findings'i de saklar (content yok).
+- `findFindingChanges` — added/removed/changed/unchanged; "changed"=aynı
+  type+filePaths farklı id (title/metin değişti). Legacy snapshot (findings
+  yok) boş listeyle işlenir.
+- Diff renderer: Artifacts (~,+,·) + Context (tokens) + Findings (+/-/=) +
+  Summary.
+
+### Gerçek repo'da 5 senaryo doğrulaması (unpoller)
+1. Snapshot → kural ekle: `+ .cursor/rules/db.mdc`, `+18 tokens`, `+ 3 new findings` ✓
+2. Snapshot → kural sil: `- .cursor/rules/db.mdc`, `-18 tokens`, `- 3 resolved` ✓
+3. Snapshot → değiştir: `~ CLAUDE.md 59→70`, `+9 tokens`, ai finding unchanged ✓
+4. Snapshot → no-op: `(no configuration file changes)`, `+0`, `= 6 unchanged` ✓
+5. Legacy format (findings yok): yüklenir, diff temiz ✓ (unit test)
+
+### Yakalanan bug (gerçek repo doğrulaması)
+`latestSnapshotFile` önce tam dosya adıyla sıralıyordu; id formatı
+`snap_<hash>_<timestamp>`, hash zaman öncesinde geldiğinden sıralama
+kronolojik DEĞİLDİ (eski snapshot 'latest' seçiliyordu). Düzeltme: satır satır
+son `_` sonrası ISO-like timestamp sonekinden sırala (kronolojik). Regression
+testi: hash öneki zıt sıralı iki senaryo.
+
+### Sonraki (Diff v2)
+snapshot list / snapshot seçimi / `diff <snapshot>` / `--json diff` / snapshot
+metadata-versioning / snapshot temizleme. Snapshot tanımı:
+'belirli bir anda repo context layer'ı üzerinde üretilen analiz durumunun
+immutable kaydı' = artifacts + findings + aggregate context metrics + metadata.  

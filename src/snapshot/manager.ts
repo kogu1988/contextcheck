@@ -93,6 +93,16 @@ export async function loadSnapshotFile(filePath: string): Promise<Snapshot> {
   return parsed;
 }
 
+/**
+ * Extracts the sortable timestamp portion from a snapshot filename. Ids are
+ * `snap_<hash>_<timestamp>`; the hash sorts before the timestamp, so sorting
+ * by full filename is NOT chronological. The trailing ISO-like timestamp is.
+ */
+function snapshotTimestampKey(filename: string): string {
+  const idx = filename.lastIndexOf("_");
+  return idx === -1 ? filename : filename.slice(idx + 1);
+}
+
 /** Lists snapshot file paths, newest last. Returns [] when none exist. */
 export async function listSnapshotFiles(rootPath: string): Promise<string[]> {
   const dir = snapshotsDir(rootPath);
@@ -104,7 +114,9 @@ export async function listSnapshotFiles(rootPath: string): Promise<string[]> {
   }
   return names
     .filter((n) => n.endsWith(SNAPSHOT_EXTENSION))
-    .sort()
+    .sort((a, b) =>
+      snapshotTimestampKey(a).localeCompare(snapshotTimestampKey(b)),
+    )
     .map((n) => join(dir, n));
 }
 
@@ -114,6 +126,6 @@ export async function latestSnapshotFile(
 ): Promise<string | null> {
   const files = await listSnapshotFiles(rootPath);
   if (files.length === 0) return null;
-  // Sorting by filename sorts by timestamp since ids embed ISO time.
+  // Sorted newest last by embedded timestamp.
   return files[files.length - 1] ?? null;
 }

@@ -11,6 +11,66 @@ import { buildSnapshot } from "./manager.js";
 import { makeFinding } from "../analyzer/rules/mapping.js";
 import { makeArtifact } from "../../test/helpers/artifact.js";
 
+describe("Snapshot/Diff v1 edge cases", () => {
+  it("no-op: identical snapshot diffs to zero findings and clean output", () => {
+    const artifacts = [
+      makeArtifact({ path: "CLAUDE.md", content: "x".repeat(400) }),
+    ];
+    const findings = [
+      makeFinding({
+        type: "duplicate",
+        filePaths: ["a.md"],
+        title: "a",
+        description: "d",
+      }),
+    ];
+    const before = buildSnapshot(artifacts, findings);
+    const after = buildSnapshot(artifacts, findings);
+
+    const diff = diffBetweenSnapshots(before, after);
+    expect(diff.delta).toBe(0);
+    expect(diff.addedFiles).toEqual([]);
+    expect(diff.removedFiles).toEqual([]);
+    expect(diff.findingChanges).toEqual({
+      added: 0,
+      removed: 0,
+      changed: 0,
+      unchanged: 1,
+    });
+    expect(diff.files.every((f) => f.status === "unchanged")).toBe(true);
+
+    const out = renderDiff(diff);
+    expect(out).toContain("(no configuration file changes)");
+    expect(out).toContain("0 added · 0 modified · 0 removed");
+    expect(out).not.toContain("[CAUTION]");
+    expect(out).not.toContain("wasted");
+  });
+
+  it("legacy snapshot without findings loads and diffs cleanly", () => {
+    // Simulate an old-format snapshot: no `findings` field at all.
+    const legacy = buildSnapshot([
+      makeArtifact({ path: "a.md", content: "x" }),
+    ]);
+    delete (legacy as { findings?: unknown }).findings;
+
+    const next = buildSnapshot([
+      makeArtifact({ path: "a.md", content: "x" }),
+      makeArtifact({ path: "b.md", content: "y" }),
+    ]);
+
+    const diff = diffBetweenSnapshots(legacy, next);
+    expect(diff.addedFiles).toEqual(["b.md"]);
+    // Legacy has no findings -> treated as empty; new snapshot has none either.
+    expect(diff.findingChanges).toEqual({
+      added: 0,
+      removed: 0,
+      changed: 0,
+      unchanged: 0,
+    });
+    expect(diff.findings).toEqual([]);
+  });
+});
+
 describe("diffSnapshots (Spec §30)", () => {
   it("computes per-file token deltas and total change", () => {
     const before = [

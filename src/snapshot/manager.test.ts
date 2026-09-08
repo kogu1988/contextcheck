@@ -65,17 +65,29 @@ describe("snapshot manager", () => {
     expect(await latestSnapshotFile(root)).toBeNull();
   });
 
-  it("returns the latest snapshot by ordering", async () => {
-    const s1 = buildSnapshot([makeArtifact({ path: "a.md", content: "1" })]);
-    const s2 = buildSnapshot([makeArtifact({ path: "b.md", content: "2" })]);
-    s2.createdAt = new Date(Date.now() + 5000).toISOString();
-    await saveSnapshot(root, s1);
-    await saveSnapshot(root, s2);
+  it("returns the latest snapshot by timestamp, not filename hash", async () => {
+    // Older snapshot with a LARGER hash prefix (sorts later alphanumerically), and
+    // a newer snapshot with a SMALLER hash prefix. Sorting by full filename would
+    // pick the OLD one; sorting by the embedded timestamp must pick the NEW one.
+    const oldSnap = buildSnapshot([
+      makeArtifact({ path: "a.md", content: "1" }),
+    ]);
+    const newSnap = buildSnapshot([
+      makeArtifact({ path: "b.md", content: "2" }),
+    ]);
+    oldSnap.id = "snap_zzzzz_2026-09-08T20-00-00-000Z";
+    newSnap.id = "snap_aaaaa_2026-09-08T21-00-00-000Z";
+    // saveSnapshot derives the path from snapshot.id (which we crafted).
+    await saveSnapshot(root, oldSnap);
+    await saveSnapshot(root, newSnap);
+
+    // Sanity: full-filename sort would put old (z...) after new (a...).
+    const sorted = [oldSnap.id, newSnap.id].sort();
+    expect(sorted[sorted.length - 1]).toBe(oldSnap.id);
 
     const latest = await latestSnapshotFile(root);
     expect(latest).not.toBeNull();
-    const loaded = await loadSnapshotFile(latest!);
-    expect(loaded.id).toBe(s2.id);
+    expect(latest).toContain(`${newSnap.id}.json`);
   });
 
   it("stores snapshots only under .contextcheck/snapshots", async () => {
