@@ -43,7 +43,7 @@ describe("renderReport", () => {
     expect(out).toContain("[CONTEXT] Large file");
     expect(out).toContain("[REVIEW] No match");
     expect(out).toContain("[CAUTION] High stakes");
-    expect(out).toContain("Run `contextcheck analyze --verbose` for details.");
+    expect(out).toContain("Run `context-check analyze --verbose` for details.");
   });
 
   it("verbose includes descriptions and recommendations", () => {
@@ -69,7 +69,7 @@ describe("renderReport", () => {
     const verbose = renderReport(report, true);
     expect(verbose).toContain("identical bodies found");
     expect(verbose).toContain("consolidate");
-    expect(verbose).not.toContain("Run `contextcheck analyze`");
+    expect(verbose).not.toContain("Run `context-check analyze`");
   });
 
   it("never claims wasted tokens or causal impact (Spec §22, §4.5)", () => {

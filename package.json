@@ -1,11 +1,11 @@
 {
-  "name": "contextcheck",
+  "name": "@kogu/context-check",
   "version": "0.1.0",
   "description": "AI coding configuration intelligence layer — local-first lint, analysis and versioning for AI coding instructions",
   "type": "module",
   "license": "MIT",
   "bin": {
-    "contextcheck": "dist/cli/index.js"
+    "context-check": "dist/cli/index.js"
   },
   "main": "dist/index.js",
   "types": "dist/index.d.ts",

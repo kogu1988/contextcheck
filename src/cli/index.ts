@@ -168,7 +168,7 @@ function buildProgram(): Command {
   const program = new Command();
 
   program
-    .name("contextcheck")
+    .name("context-check")
     .description("AI coding configuration intelligence layer")
     .version(version);
 

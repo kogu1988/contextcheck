@@ -3,7 +3,7 @@
 > **See what your AI coding context contains, what changed, and what deserves review.**
 
 > **Beta:** `contextcheck` şu anda beta kanalında yayınlanıyor. Kullanım:
-> `npm install -g contextcheck@beta` veya `npx contextcheck@beta analyze`.
+> `npm install -g @kogu/context-check@beta` veya `npx @kogu/context-check@beta analyze`.
 
 contextcheck, AI coding agent'ların kullandığı instructions, rules ve skills
 dosyalarını (CLAUDE.md, AGENTS.md, .cursor/rules, SKILL.md) keşfeden,
@@ -19,13 +19,13 @@ takip etmeni sağlayan **local-first** bir developer tooludur.
 
 ```bash
 # 1) Mevcut AI context'ini gör
-npx contextcheck@beta analyze
+npx @kogu/context-check@beta analyze
 
 # 2) Bir anlık görüntü al
-npx contextcheck@beta snapshot
+npx @kogu/context-check@beta snapshot
 
 # 3) Kurallarında değişiklik yap, ne değiştiğini gör
-npx contextcheck@beta diff
+npx @kogu/context-check@beta diff
 ```
 
 Bunların hepsi hesap gerektirmez, hiçbir içerik cihazından çıkmaz.
@@ -33,50 +33,50 @@ Bunların hepsi hesap gerektirmez, hiçbir içerik cihazından çıkmaz.
 Global kurulum tercih edersen:
 
 ```bash
-npm install -g contextcheck@beta
-contextcheck analyze
+npm install -g @kogu/context-check@beta
+@kogu/context-check analyze
 ```
 
 ## Kullanım
 
 ```bash
 # Tüm AI configuration dosyalarını keşfet + analiz et
-contextcheck analyze
+@kogu/context-check analyze
 
 # Detaylı bulgular
-contextcheck analyze --verbose
+@kogu/context-check analyze --verbose
 
 # Hızlı insan çıktısı (summary + findings)
-contextcheck analyze --compact
+@kogu/context-check analyze --compact
 
 # Makine tarafından okunabilir, privacy-safe JSON çıktısı
-contextcheck analyze --json
+@kogu/context-check analyze --json
 
 # CI'da findings eşik üstüyse başarısız ol
-contextcheck analyze --json --fail-on notice
+@kogu/context-check analyze --json --fail-on notice
 ```
 
 Üç çıktı kontratı:
 
 ```text
-contextcheck analyze          -> detaylı, varsayılan (spec §9)
-contextcheck analyze --compact -> hızlı insan çıktısı
-contextcheck analyze --json    -> CI / automation (privacy-safe)
+@kogu/context-check analyze          -> detaylı, varsayılan (spec §9)
+@kogu/context-check analyze --compact -> hızlı insan çıktısı
+@kogu/context-check analyze --json    -> CI / automation (privacy-safe)
 ```
 
 ## Komutlar
 
-- `contextcheck analyze` — keşfet ve analiz et
-- `contextcheck analyze --verbose` — detaylı bulgular
-- `contextcheck analyze --json` — privacy-safe JSON (raw content yok)
-- `contextcheck analyze --compact` — hızlı/kompakt insan çıktısı
-- `contextcheck analyze --fail-on <info|notice|warning>` — eşik üstü finding'de exit 1
-- `contextcheck snapshot` — AI configuration snapshot oluştur
-- `contextcheck snapshot list` — kayıtlı snapshot'ları listele
-- `contextcheck diff` — en son snapshot ile mevcut durumu karşılaştır (artifact + token + finding değişimleri)
-- `contextcheck diff <snapshot-id>` — belirtilen snapshot ile mevcut durumu karşılaştır
-- `contextcheck diff --json` — privacy-safe JSON diff
-- `contextcheck config` — yapılandırma (`.contextcheck.json`)
+- `@kogu/@kogu/context-check analyze` — keşfet ve analiz et
+- `@kogu/context-check analyze --verbose` — detaylı bulgular
+- `@kogu/context-check analyze --json` — privacy-safe JSON (raw content yok)
+- `@kogu/context-check analyze --compact` — hızlı/kompakt insan çıktısı
+- `@kogu/context-check analyze --fail-on <info|notice|warning>` — eşik üstü finding'de exit 1
+- `@kogu/@kogu/context-check snapshot` — AI configuration snapshot oluştur
+- `@kogu/context-check snapshot list` — kayıtlı snapshot'ları listele
+- `@kogu/context-check diff` — en son snapshot ile mevcut durumu karşılaştır (artifact + token + finding değişimleri)
+- `@kogu/context-check diff <snapshot-id>` — belirtilen snapshot ile mevcut durumu karşılaştır
+- `@kogu/context-check diff --json` — privacy-safe JSON diff
+- `@kogu/context-check config` — yapılandırma (`.contextcheck.json`)
 
 ## Exit code politkası
 
@@ -86,7 +86,7 @@ finding varsa `exit 1`:
 
 ```bash
 # notice (REVIEW/CAUTION) findings → exit 1; sadece info → exit 0
-contextcheck analyze --fail-on notice
+@kogu/context-check analyze --fail-on notice
 ```
 
 `--fail-on` değeri finding **severity** kullanır (info < notice < warning).
@@ -94,7 +94,7 @@ Label→severity: INFO/CONTEXT → info, REVIEW/CAUTION → notice.
 
 ## Diff (snapshot → current)
 
-`contextcheck diff`, context layer'ın zaman içindeki değişimini gösterir:
+`@kogu/context-check diff`, context layer'ın zaman içindeki değişimini gösterir:
 artifact (eklenen/silinmiş/değişen dosyalar), toplam context token değişimi ve
 **analiz bulgularının değişimi** (yeni/çözülen/değişen finding):
 
@@ -126,7 +126,7 @@ Bu, "context layer değişti ve bunun sonucunda hangi bulgular ortaya
 
 ## Snapshot list ve seçimi (v2)
 
-`contextcheck snapshot list` kayıtlı snapshot'ları gösterir:
+`@kogu/context-check snapshot list` kayıtlı snapshot'ları gösterir:
 
 ```text
 ContextCheck Snapshots
@@ -139,7 +139,7 @@ ID        Created                 Files  Tokens  Findings
 Belirli bir snapshot'a karşı diff:
 
 ```bash
-contextcheck diff 7ebv3k
+@kogu/context-check diff 7ebv3k
 ```
 
 `diff --json` CI/automation için privacy-safe JSON üretir (artifact token
@@ -161,8 +161,8 @@ jobs:
       - uses: actions/checkout@v4
         with:
           fetch-depth: 0 # scoped-no-match Git history için tam geçmiş
-      - run: npx contextcheck analyze --fail-on notice # CI gate
-      - run: npx contextcheck analyze --compact # PR log
+      - run: npx @kogu/context-check analyze --fail-on notice # CI gate
+      - run: npx @kogu/context-check analyze --compact # PR log
 ```
 
 `fetch-depth: 0` önemli: shallow checkout'u ContextCheck tespit eder ve
@@ -205,9 +205,9 @@ npm publish --tag beta
 Beta'yı test et:
 
 ```bash
-npm install -g contextcheck@beta
-npx contextcheck@beta analyze
+npm install -g @kogu/context-check@beta
+npx @kogu/context-check@beta analyze
 ```
 
-Stabil sürüm hazır olduğunda `--tag latest` ile (veya `npm dist-tag add contextcheck@<version> latest`)
+Stabil sürüm hazır olduğunda `--tag latest` ile (veya `npm dist-tag add @kogu/context-check@<version> latest`)
 mevcut sürümü `latest` kanalına taşı.

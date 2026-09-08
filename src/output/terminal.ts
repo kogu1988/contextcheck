@@ -18,7 +18,7 @@ function label(finding: Finding): string {
 /** Formats a full report for the terminal. */
 export function renderReport(report: AnalysisReport, verbose = false): string {
   const lines: string[] = [];
-  lines.push("contextcheck");
+  lines.push("context-check");
   lines.push("");
   lines.push("AI CONFIGURATION REPORT");
   lines.push("");
@@ -50,7 +50,7 @@ export function renderReport(report: AnalysisReport, verbose = false): string {
 
   lines.push("");
   if (!verbose) {
-    lines.push("Run `contextcheck analyze --verbose` for details.");
+    lines.push("Run `context-check analyze --verbose` for details.");
   }
 
   return lines.join("\n");
