@@ -145,14 +145,24 @@ jobs:
       - uses: actions/checkout@v4
         with:
           fetch-depth: 0   # scoped-no-match Git history için tam geçmiş
-      - run: npx contextcheck analyze --json
+      - run: npx contextcheck analyze --fail-on notice   # CI gate
+      - run: npx contextcheck analyze --compact          # PR log
 ```
 
 `fetch-depth: 0` önemli: shallow checkout'u ContextCheck tespit eder ve
-`scoped-no-match`'i güvenli şekilde atlar (Rule 26). Varsayılan olarak CI
-informational; findings'leri gate'lemek istersen `--fail-on notice` ekle. Bu
-repo'da workflow `.github/workflows/contextcheck.yml` mevcut ve paket yayınlanana
-kadar repo içinden dogfooding modunda çalışır (yayın sonrası `npx`'e döner).
+`scoped-no-match`'i güvenli şekilde atlar (Rule 26).
+
+İki kullanım modu:
+
+```text
+Developer workflow   analyze → snapshot → diff
+CI workflow          analyze --fail-on notice
+```
+
+`--fail-on notice` REVIEW/CAUTION findings'de CI'ı kırar; yalnızca INFO
+(duplicate/large-file) findings build'i kırmaz. Bu repo'da workflow
+`.github/workflows/contextcheck.yml` mevcut ve paket yayınlanana kadar repo
+içinden dogfooding modunda çalışır (yayın sonrası `npx`'e döner).
 
 ## Geliştirme
 

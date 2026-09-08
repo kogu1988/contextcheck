@@ -28,7 +28,13 @@ jobs:
         run: npm run build
 
       - name: Run contextcheck analyze (dogfood from repo)
-        # Informational by default: findings never fail CI on their own.
-        # Add `--fail-on notice` (or warning) once you decide findings gate CI.
-        # Once published to npm, replace with: npx contextcheck analyze --json
-        run: node dist/cli/index.js analyze --json
+        # CI gate mode: `--fail-on notice` fails on REVIEW/CAUTION findings.
+        # This repo currently has no findings, so it passes. Findings that are
+        # only INFO (duplicates/large-file, etc.) still do not fail the build.
+        # Once published to npm, replace with: npx contextcheck analyze --fail-on notice
+        run: node dist/cli/index.js analyze --json --fail-on notice
+
+      - name: Show informational-only snapshot of findings
+        # Always emit the report even when the gate passes, for the PR log.
+        if: always()
+        run: node dist/cli/index.js analyze --compact

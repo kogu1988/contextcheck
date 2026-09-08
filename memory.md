@@ -410,4 +410,46 @@ testi: hash öneki zıt sıralı iki senaryo.
 snapshot list / snapshot seçimi / `diff <snapshot>` / `--json diff` / snapshot
 metadata-versioning / snapshot temizleme. Snapshot tanımı:
 'belirli bir anda repo context layer'ı üzerinde üretilen analiz durumunun
-immutable kaydı' = artifacts + findings + aggregate context metrics + metadata.  
+immutable kaydı' = artifacts + findings + aggregate context metrics + metadata.
+
+---
+
+## Diff v2 (uygulandı)
+
+- Snapshot schema `version: 1` kilitlendi (geriye dönük uyumlu; legacy yok->1).
+- `snapshot list` — metadata ile liste (id, createdAt, files, tokens, findings).
+- `diff <snapshot-id>` — exact/short/unique-prefix çözümleme (`resolveSnapshotRef`),
+  belirsizse exit 1.
+- `diff --json` — privacy-safe JSON (before.id/createdAt/tokens, deltaTokens,
+  files, findingChanges, findings; raw content YOK).
+- `listSnapshots` createdAt'a göre newest-first.
+
+## Milestone 3 — Gerçek repo pilotu (Diff v2)
+
+4 gerçek repo (unpoller=rich, terraform-provider-proxmox=multi,
+react-data-table-component=clean2, owncloud-notes=agents). Her birinde
+snapshot -> auth/modify -> diff -> diff <id> -> diff --json -> no-op.
+
+Sonuçlar:
+- rich: modify CLAUDE.md `~ 1801->1815`, `+14 tokens`, findings `+2 new / -1
+  resolved / =3 unchanged`. (`+2/-1` gerçek: mevcut high-stakes + scoped
+  sinyalleri yeniden değerlendirildi, noise değil.)
+- multi: `~ CLAUDE.md +12`, `+1 new / =2 unchanged`.
+- clean2: `~ CLAUDE.md +12`, `+1 new` (0->1, temiz repo'ya auth kuralı -> tam
+  olarak +1 high-stakes).
+- agents: `~ CLAUDE.md +12`, `+1 new`.
+- NO-OP hepsinde: `(no configuration file changes)`, `0/0/0` — tutarlı temiz.
+- `diff --json` hepsinde privacy-safe (contentKey=false).
+
+### Yorum
+- Şaşırtıcı/yanlış sonuç yok. Temiz repo'ya auth kuralı ekleyince tam `+1 new`
+  high-stakes -> ürün sinyali keskin. No-op davranışı 4 repo'da tutarlı.
+- Bu, ürün hipotezinin teknik tarafını doğruluyor ('developer diff gördükten
+  sonra context değiştiriyor mu' kullanıcı davranışıyla ölçülecek; teknik
+  taraf hazır).
+- CI workflow `--fail-on notice` + `--compact` (PR log) iki moda oturtuldu;
+  bu repo 0 bulgu -> CI geçer.
+
+### Sıradaki (Milestone 3 devamı)
+npm/public beta: `npx contextcheck analyze` + README vaadi. Health Score/
+AI correlation/dashboard/cloud/embeddings/LLM/team DOKUNULMADI.  
