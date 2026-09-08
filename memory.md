@@ -283,3 +283,95 @@ npx:    analyze/json/snapshot/diff all work end-to-end
 - Node `>=20` öneriliyor (ESLint v9 ve transitive `eslint-visitor-keys` için)
 - `npm publish` öncesi gerçek GitHub remote + CI kurulumu
 - Cloud / monetization / B2B governance spesifikasyona göre MVP dışı (bilinçli)
+
+---
+
+## Gerçek Dünya Pilotu (8 repo) — 2026
+
+Milestone 1'in gerçek repo'lardaki faydasını ölçmek için 8 farklı gerçek
+repository klonlandı (tam history) ve `contextcheck analyze` koşuldu.
+Repolar: gosec, terraform-provider-proxmox, react-data-table-component,
+gravity, nodejieba, owncloud-notes, unpoller, graphframes.
+
+### Bulgu sayıları (finding type dağılımı)
+```
+gosec:          high-stakes × 3
+proxmox:        high-stakes × 2, large-file × 1
+react-dt:       high-stakes × 1
+gravity:        (yok)
+nodejieba:      (yok)   <- temiz repo, 0 bulgu (iyi)
+owncloud-notes: high-stakes × 1
+unpoller:       high-stakes × 3, large-file × 1, repetition × 2, context-overhead × 1
+graphframes:    high-stakes × 1, large-file × 1
+```
+
+### Kritik gözlemler
+1. **scoped-no-match HİÇ tetiklenmedi.** Tüm 8 gerçek repoda `scope`
+   (globs/alwaysApply frontmatter) taşıyan ZERO artifact bulundu. Gerçek
+   dünyada CLAUDE.md/.cursorrules/AGENTS.md çoğunlukla düz metin/markdown;
+   `.cursor/rules/*.mdc`'in `globs`'u yaygın değil. Kural şu an fiilen
+   dead-code; değeri sorgulanmalı veya daha geniş scope algılama gerekli.
+2. **high-stakes false-positive riski YÜKSEK.** Eşleşen keyword'lerin çoğu
+   rutin bağlam: "deploy" (Netlify redeploy, docs deployment), "security"
+   (Security Gateways dosyası), "database". Örn.:
+   - react-dt "deploy" → "master push triggers Netlify redeploy" (rutin)
+   - graphframes "deploy" → "documentation deployed to graphframes.io" (rutin)
+   - unpoller "security" → `usg.go - Security Gateways` (dosya adı)
+   - unpoller "deploy" → build/deployment scripts (rutin)
+   Keyword seti çok geniş (deploy/production/security/database); gerçek
+   kritik kurallar (gerçek secret/credential/auth/payment bağlamı) daha
+   nadir ve daha hedefli olmalı.
+3. **repetition (unpoller) GENUINE bulgu.** `.cursorrules` + `CLAUDE.md`
+   arasında `# Architecture` ve `# Dependencies` bölümleri normalize edilince
+   birebir aynı → gerçek çift kayıt. Markdown yapısını cezalandırmıyor,
+   doğru yakalıyor.
+4. **large-file anlamlı** (proxmox 6.5k, unpoller 5.3k, graphframes 2k).
+5. **duplicate hiç oluşmadı** — tamamen aynı body'ye sahip config dosyaları
+   gerçek repolarda nadir. (repetition daha duyarlı ve faydalı.)
+6. **Temiz repo'lar (gravity, nodejieba) 0 bulgu** → false-positive yok,
+   sessiz kalma davranışı doğru.
+
+### Ürün kararı: high-stakes REVISE NOW (pilot sonrası)
+
+Pilot, high-stakes'in güvenilirliği azalttığını kanıtladı. Kural iki katmanlı
+modele revize edildi (`src/analyzer/rules/high-stakes.ts`):
+
+- **STRONG_TERMS** (tek başına CAUTION): secret, credential, password,
+  authentication, authorization, permission, payment, api key, private key,
+  access token. Word-boundary + plural-aware eşleşme.
+- **CONTEXTUAL_TERMS** (tek başına ASLA tetiklemez): deploy, deployment,
+  production, security, database, billing, infrastructure, migration.
+  Sadece strong sinyali güçlendirir, yerine geçmez.
+- **Path/scope adı tek başına tetiklemez**: `.env.example`, `config/auth.ts`,
+  `auth/middleware.ts`, `secrets.md`, `deployment.md` CAUTION üretmez.
+- Artık `detectHighStakes` YALNIZCA content üzerinden strong term arar.
+
+### Diğer rule kararları (ürün sınıflandırması)
+| Rule             | Durum                       |
+| ---------------- | --------------------------- |
+| duplicate        | KEEP                        |
+| repetition       | KEEP / değerli               |
+| large-file       | KEEP                        |
+| context-overhead | KEEP                        |
+| high-stakes      | REVISE (yapıldı)             |
+| scoped-no-match  | KEEP, VALIDATION NEEDED     |
+
+- scoped-no-match'e dokunulmadı: pilot gösterdi ki kural YANLIŞ çalışmıyor,
+  8 repoda scope taşıyan artifact yoktu. Karmaşıklık eklenmedi, düşük profil
+  capability olarak bırakıldı.
+- `duplicate` vs `repetition`: tam dosya duplicate gerçekte nadir; aynı
+  bölümün farklı dosyalarda tekrarı (repetition) gerçek problem -> repetition
+  muhtemelen ileride daha önemli.
+
+### Düzeltme sonrası doğrulama (4 gerçek repo tekrar koşuldu)
+```
+react-dt:    0 bulgu  (eski 1 false CAUTION 'deploy' -> GİTTİ)
+graphframes: 1 ~large-file (eski false 'deploy' CAUTION -> GİTTİ)
+unpoller:    5 bulgu, high-stakes=1 (eski 3 -> 2 fevvae false gitti)
+proxmox:     2 bulgu, high-stakes=1 (eski 2 -> auth-only tek başına tetiklemiyor)
+```
+
+- Test suite: 159 test (pilot false-positive regression'ları eklendi: react-dt
+  'deploy', graphframes 'deploy', 'security gateways', 'deployment scripts',
+  path-name-only no-trigger).
+- Sonraki adım: CLI UX / CI (high-stakes revizyonu tamam).  

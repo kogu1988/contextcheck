@@ -1,48 +1,72 @@
 /**
- * High-stakes detection (Spec §26, §27, Rule 20).
+ * High-stakes detection (Spec §26, §27, Rule 20) — REVISED after real-world
+ * pilot, two-tier model.
  *
- * Considers three sources:
- *   1. file path
- *   2. scope/glob patterns
- *   3. file content
+ * Tier 1 (STRONG): a single strong term in CONTENT alone justifies CAUTION
+ *   e.g. secret, credential, password, authentication, authorization,
+ *   permission, payment, private key, api key, access token.
  *
- * Keyword matching is case-insensitive. This is NOT a security classifier and
- * never uses terms like "critical" or "dangerous"; it surfaces a review
- * candidate: "Potentially high-stakes" + "Review manually before modifying".
+ * Tier 2 (CONTEXTUAL): weaker terms (deploy, production, security, database,
+ *   billing, infrastructure, migration) NEVER trigger a finding on their own.
+ *   They may only reinforce a strong signal, never substitute for it. This
+ *   removes the pilot's false positives ("docs deployed", "security gateways",
+ *   "deployment scripts").
+ *
+ * Path/scope names are never the sole trigger: `.env.example`, `config/auth.ts`,
+ * `deployment.md` must not produce CAUTION by naming alone.
+ *
+ * Practically: a finding is produced iff a STRONG term is present in a rule's
+ * content. CONTEXTUAL entries are retained as reinforcement only.
  */
 
 import type { ConfigurationArtifact } from "../../types/configuration.js";
 import type { AnalyzerRule } from "../types.js";
 import { makeFinding } from "./mapping.js";
 
-/** Keyword categories (Spec §26). Case-insensitive substring match. */
-export const HIGH_STAKES_KEYWORDS: readonly string[] = [
-  "security",
-  "auth",
+/** Strong terms that alone justify a CAUTION finding (word-boundary match). */
+export const STRONG_TERMS: readonly string[] = [
+  "secret",
+  "credential",
+  "password",
   "authentication",
   "authorization",
   "permission",
-  "permissions",
-  "secret",
-  "secrets",
-  "credential",
-  "credentials",
   "payment",
-  "payments",
-  "billing",
+  "api key",
+  "private key",
+  "access token",
+];
+
+/** Contextual terms that NEVER trigger alone (Spec §26 weak categories). */
+export const CONTEXTUAL_TERMS: readonly string[] = [
   "deploy",
   "deployment",
   "production",
+  "security",
   "database",
-  "migration",
+  "billing",
   "infrastructure",
+  "migration",
 ];
 
-/** Finds which keywords appear in a lowercased haystack. */
-export function matchKeywords(text: string): string[] {
-  const lower = text.toLowerCase();
-  const found = HIGH_STAKES_KEYWORDS.filter((k) => lower.includes(k));
-  return [...new Set(found)];
+/**
+ * Escapes a literal and anchors it to whole-word boundaries. Single-word terms
+ * accept an optional trailing `s` so (credential/credentials) both match.
+ */
+function termPattern(term: string): RegExp {
+  const escaped = term.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+  const plural = term.includes(" ") ? escaped : `${escaped}(?:s|es)?`;
+  return new RegExp(`\\b${plural}\\b`, "i");
+}
+
+/** Returns the first STRONG term present in `text`, or undefined. */
+export function matchStrongTerm(text: string): string | undefined {
+  return STRONG_TERMS.find((term) => termPattern(term).test(text));
+}
+
+/** Returns the first CONTEXTUAL term present in `text`, or undefined. */
+export function matchContextualTerm(text: string): string | undefined {
+  return CONTEXTUAL_TERMS.find((term) => termPattern(term).test(text));
 }
 
 export const highStakesRule: AnalyzerRule = {
@@ -51,8 +75,12 @@ export const highStakesRule: AnalyzerRule = {
     const findings = [];
 
     for (const artifact of artifacts) {
-      const keyword = detectHighStakes(artifact);
-      if (!keyword) continue;
+      const strong = matchStrongTerm(artifact.content);
+      if (!strong) continue;
+
+      // A contextual term can only reinforce a strong signal; it is never sufficient.
+      const context = matchContextualTerm(artifact.content);
+      const why = context ? `(reinforced by "${context}")` : "";
 
       findings.push(
         makeFinding({
@@ -60,9 +88,10 @@ export const highStakesRule: AnalyzerRule = {
           filePaths: [artifact.path],
           title: "Potentially high-stakes configuration",
           description:
-            `${artifact.path} appears related to "${keyword}". Potentially ` +
-            `high-stakes configuration detected: this instruction may be low ` +
-            `frequency but important. Review manually before modifying or removing it.`,
+            `${artifact.path} contains a strong high-stakes signal related to ` +
+            `"${strong}" ${why}. Potentially high-stakes configuration detected: ` +
+            `this instruction may be low frequency but important. Review manually ` +
+            `before modifying or removing it.`,
           recommendation:
             `Before changing or removing this rule, confirm its scope and ` +
             `purpose with context of the related system.`,
@@ -75,24 +104,11 @@ export const highStakesRule: AnalyzerRule = {
 };
 
 /**
- * Returns the first matched keyword, or undefined. Investigates path, scope
- * patterns and content, all case-insensitively (Rule 20).
+ * Returns the matched STRONG term, or undefined. Detection is content-driven
+ * (Rule 20 still reads the artifact, but path/scope names never trigger alone).
  */
 export function detectHighStakes(
   artifact: ConfigurationArtifact,
 ): string | undefined {
-  const sources: string[] = [artifact.path];
-  if (artifact.scope?.patterns) {
-    sources.push(...artifact.scope.patterns);
-  }
-  sources.push(artifact.content);
-
-  for (const source of sources) {
-    const matched = matchKeywords(source);
-    if (matched.length > 0) {
-      return matched[0];
-    }
-  }
-
-  return undefined;
+  return matchStrongTerm(artifact.content);
 }
