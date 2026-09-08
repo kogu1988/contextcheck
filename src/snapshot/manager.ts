@@ -27,7 +27,11 @@ export interface SnapshotEntry {
   metadata: ConfigurationArtifact["metadata"];
 }
 
+export const SNAPSHOT_VERSION = 1;
+
 export interface Snapshot {
+  /** Schema version. Introduced in v2; legacy snapshots lack it -> treated as 1. */
+  version?: number;
   id: string;
   createdAt: string;
   configurationFiles: number;
@@ -47,6 +51,7 @@ export function buildSnapshot(
   const createdAt = new Date().toISOString();
 
   return {
+    version: SNAPSHOT_VERSION,
     id: snapshotId(createdAt),
     createdAt,
     configurationFiles: artifacts.length,
@@ -128,4 +133,55 @@ export async function latestSnapshotFile(
   if (files.length === 0) return null;
   // Sorted newest last by embedded timestamp.
   return files[files.length - 1] ?? null;
+}
+
+/**
+ * Resolves a snapshot reference (exact id, unique id prefix, or a direct file
+ * path) to a snapshot file path. Returns null when no snapshot matches.
+ */
+export async function resolveSnapshotRef(
+  rootPath: string,
+  ref: string,
+): Promise<string | null> {
+  // Direct file path (backward compatible with `diff <file>`).
+  const asPath = join(rootPath, SNAPSHOT_DIR, ref);
+  const files = await listSnapshotFiles(rootPath);
+
+  const exact = files.find(
+    (f) => basenameOf(f) === ref || f === ref || f === asPath,
+  );
+  if (exact) return exact;
+
+  // Unique id prefix match. Match against the full id AND the short hash part.
+  const matches = files.filter((f) => {
+    const base = basenameOf(f).replace(SNAPSHOT_EXTENSION, "");
+    const short = base.split("_")[1] ?? "";
+    return (
+      base === ref ||
+      base.startsWith(ref) ||
+      short === ref ||
+      short.startsWith(ref)
+    );
+  });
+  return matches.length === 1 ? matches[0]! : null;
+}
+
+function basenameOf(filePath: string): string {
+  const idx = Math.max(filePath.lastIndexOf("/"), filePath.lastIndexOf("\\"));
+  return idx === -1 ? filePath : filePath.slice(idx + 1);
+}
+
+/** Loads metadata for every snapshot, newest last. */
+export async function listSnapshots(rootPath: string): Promise<Snapshot[]> {
+  const files = await listSnapshotFiles(rootPath);
+  const snaps: Snapshot[] = [];
+  for (const file of files) {
+    try {
+      snaps.push(await loadSnapshotFile(file));
+    } catch {
+      // Skip unreadable/corrupt snapshot rather than failing the whole list.
+    }
+  }
+  // Already newest-last; ensure by createdAt too.
+  return snaps.sort((a, b) => b.createdAt.localeCompare(a.createdAt));
 }

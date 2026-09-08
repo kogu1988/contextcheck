@@ -56,7 +56,10 @@ contextcheck analyze --json    -> CI / automation (privacy-safe)
 - `contextcheck analyze --compact` — hızlı/kompakt insan çıktısı
 - `contextcheck analyze --fail-on <info|notice|warning>` — eşik üstü finding'de exit 1
 - `contextcheck snapshot` — AI configuration snapshot oluştur
+- `contextcheck snapshot list` — kayıtlı snapshot'ları listele
 - `contextcheck diff` — en son snapshot ile mevcut durumu karşılaştır (artifact + token + finding değişimleri)
+- `contextcheck diff <snapshot-id>` — belirtilen snapshot ile mevcut durumu karşılaştır
+- `contextcheck diff --json` — privacy-safe JSON diff
 - `contextcheck config` — yapılandırma (`.contextcheck.json`)
 
 ## Exit code politkası
@@ -104,6 +107,27 @@ Summary
 Bu, "context layer değişti ve bunun sonucunda hangi bulgular ortaya
 çıktı/kayboldu?" sorusunu cevaplar — model performansıyla ilgili kausal iddia
 **değildir** (Spec §28).
+
+## Snapshot list ve seçimi (v2)
+
+`contextcheck snapshot list` kayıtlı snapshot'ları gösterir:
+
+```text
+ContextCheck Snapshots
+
+ID        Created                 Files  Tokens  Findings
+7ebv3k    2026-09-09 00:14:22    12      4,820    3
+43d791    2026-09-08 12:03:44    10      3,980    1
+```
+
+Belirli bir snapshot'a karşı diff:
+
+```bash
+contextcheck diff 7ebv3k
+```
+
+`diff --json` CI/automation için privacy-safe JSON üretir (artifact token
+delta'ları, finding değişimleri, snapshot metadata — **asla raw content yok**).
 
 ## GitHub Actions (CI)
 

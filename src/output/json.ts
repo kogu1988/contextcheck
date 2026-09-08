@@ -14,6 +14,13 @@ import type {
 } from "../types/configuration.js";
 import type { Finding } from "../types/finding.js";
 import type { AnalysisReport } from "../types/report.js";
+import type {
+  FileDiff,
+  FindingChange,
+  FindingChangesSummary,
+  SnapshotDiff,
+} from "../snapshot/diff.js";
+import type { Snapshot } from "../snapshot/manager.js";
 
 /** Privacy-safe artifact DTO (Spec §33). */
 export interface ArtifactJson {
@@ -60,4 +67,46 @@ export function toReportJson(report: AnalysisReport): ReportJson {
 /** Serializes a report as formatted, privacy-safe JSON. */
 export function serializeReport(report: AnalysisReport): string {
   return JSON.stringify(toReportJson(report), null, 2);
+}
+
+/** Privacy-safe snapshot diff DTO for CI consumption. */
+export interface DiffJson {
+  before: {
+    id: string | null;
+    createdAt: string | null;
+    tokens: number;
+    files: number;
+  };
+  after: {
+    tokens: number;
+    files: number;
+  };
+  deltaTokens: number;
+  files: FileDiff[];
+  findingChanges: FindingChangesSummary;
+  findings: FindingChange[];
+}
+
+/** Serializes a snapshot diff as privacy-safe JSON (no raw content). */
+export function serializeDiff(
+  diff: SnapshotDiff,
+  before?: Snapshot | null,
+): string {
+  const dto: DiffJson = {
+    before: {
+      id: before?.id ?? null,
+      createdAt: before?.createdAt ?? null,
+      tokens: diff.beforeTokens,
+      files: before?.artifacts.length ?? 0,
+    },
+    after: {
+      tokens: diff.afterTokens,
+      files: diff.files.filter((f) => f.status !== "removed").length,
+    },
+    deltaTokens: diff.delta,
+    files: diff.files,
+    findingChanges: diff.findingChanges,
+    findings: diff.findings,
+  };
+  return JSON.stringify(dto, null, 2);
 }

@@ -8,8 +8,11 @@ import {
   buildSnapshot,
   latestSnapshotFile,
   listSnapshotFiles,
+  listSnapshots,
   loadSnapshotFile,
+  resolveSnapshotRef,
   saveSnapshot,
+  SNAPSHOT_VERSION,
 } from "./manager.js";
 import { makeArtifact } from "../../test/helpers/artifact.js";
 
@@ -95,5 +98,39 @@ describe("snapshot manager", () => {
     const file = await saveSnapshot(root, snap);
     const relative = join(".contextcheck", "snapshots");
     expect(file).toContain(relative);
+  });
+
+  it("tags snapshots with a schema version (v2 lock)", () => {
+    const snap = buildSnapshot([]);
+    expect(snap.version).toBe(SNAPSHOT_VERSION);
+  });
+
+  it("resolves a snapshot by its short id or unique prefix", async () => {
+    const a = buildSnapshot([makeArtifact({ path: "a.md", content: "1" })]);
+    a.id = "snap_abc12_2026-01-01T00-00-00-000Z";
+    const b = buildSnapshot([makeArtifact({ path: "b.md", content: "2" })]);
+    b.id = "snap_def34_2026-01-02T00-00-00-000Z";
+    await saveSnapshot(root, a);
+    await saveSnapshot(root, b);
+
+    expect(await resolveSnapshotRef(root, "abc12")).toContain("abc12");
+    expect(await resolveSnapshotRef(root, "snap_abc12")).toContain("abc12");
+    expect(await resolveSnapshotRef(root, "abc")).toContain("abc12"); // unique prefix
+    expect(await resolveSnapshotRef(root, "nope")).toBeNull();
+  });
+
+  it("listSnapshots returns metadata newest first", async () => {
+    const a = buildSnapshot([makeArtifact({ path: "a.md", content: "1" })]);
+    a.id = "snap_aaa_2026-01-01T00-00-00-000Z";
+    a.createdAt = "2026-01-01T00:00:00.000Z";
+    const b = buildSnapshot([makeArtifact({ path: "b.md", content: "2" })]);
+    b.id = "snap_bbb_2026-01-02T00-00-00-000Z";
+    b.createdAt = "2026-01-02T00:00:00.000Z";
+    await saveSnapshot(root, a);
+    await saveSnapshot(root, b);
+
+    const snaps = await listSnapshots(root);
+    expect(snaps).toHaveLength(2);
+    expect(snaps[0]!.id).toBe(b.id); // newest (later createdAt)
   });
 });

@@ -12,11 +12,12 @@ import { version } from "../index.js";
 import { loadConfig } from "../config/load.js";
 import { runAnalyze } from "../analyzer/run.js";
 import {
+  formatTokens,
   renderCompactReport,
   renderDiff,
   renderReport,
 } from "../output/terminal.js";
-import { serializeReport } from "../output/json.js";
+import { serializeDiff, serializeReport } from "../output/json.js";
 import {
   isValidFailThreshold,
   shouldFailOnSeverity,
@@ -25,7 +26,9 @@ import {
 import {
   buildSnapshot,
   latestSnapshotFile,
+  listSnapshots,
   loadSnapshotFile,
+  resolveSnapshotRef,
   saveSnapshot,
 } from "../snapshot/manager.js";
 import { diffBetweenSnapshots } from "../snapshot/diff.js";
@@ -94,16 +97,26 @@ export async function snapshotAction(): Promise<void> {
   void file;
 }
 
-/** `contextcheck diff` — compares latest snapshot vs current state. */
-export async function diffAction(from?: string): Promise<void> {
+/** `contextcheck diff [snapshot-id]` — compares a snapshot vs current state. */
+export async function diffAction(
+  from?: string,
+  opts: { json?: boolean } = {},
+): Promise<void> {
   const rootPath = process.cwd();
   const options = await loadConfig(rootPath);
   const { report } = await runAnalyze({ rootPath, options });
   const currentSnapshot = buildSnapshot(report.artifacts, report.findings);
 
-  let before;
+  let before: Awaited<ReturnType<typeof loadSnapshotFile>>;
   if (from) {
-    before = await loadSnapshotFile(from);
+    const resolved = await resolveSnapshotRef(rootPath, from);
+    if (!resolved) {
+      // eslint-disable-next-line no-console
+      console.error(`[contextcheck] No snapshot found for "${from}".`);
+      process.exitCode = 1;
+      return;
+    }
+    before = await loadSnapshotFile(resolved);
   } else {
     const latest = await latestSnapshotFile(rootPath);
     if (!latest) {
@@ -117,7 +130,38 @@ export async function diffAction(from?: string): Promise<void> {
   }
 
   const diff = diffBetweenSnapshots(before, currentSnapshot);
+  if (opts.json) {
+    process.stdout.write(`${serializeDiff(diff, before)}\n`);
+    return;
+  }
   process.stdout.write(`${renderDiff(diff)}\n`);
+}
+
+/** `contextcheck snapshot list` — lists stored snapshots. */
+export async function snapshotListAction(): Promise<void> {
+  const rootPath = process.cwd();
+  const snaps = await listSnapshots(rootPath);
+  if (snaps.length === 0) {
+    // eslint-disable-next-line no-console
+    console.log("No snapshots yet. Run `contextcheck snapshot` first.");
+    return;
+  }
+
+  const short = (s: { id: string }) => s.id.split("_")[1] ?? s.id;
+  const dateFmt = (iso: string) => iso.replace("T", " ").replace(/\..*/, "");
+
+  const lines: string[] = [];
+  lines.push("ContextCheck Snapshots");
+  lines.push("");
+  lines.push("ID        Created                 Files  Tokens  Findings");
+  for (const s of snaps) {
+    lines.push(
+      `${short(s).padEnd(9)}${dateFmt(s.createdAt).padEnd(25)}${String(s.configurationFiles).padEnd(7)}` +
+        `${formatTokens(s.estimatedTokens).padEnd(8)}${s.findings?.length ?? 0}`,
+    );
+  }
+  // eslint-disable-next-line no-console
+  console.log(lines.join("\n"));
 }
 
 function buildProgram(): Command {
@@ -140,16 +184,27 @@ function buildProgram(): Command {
     )
     .action(async (opts) => analyzeAction(opts));
 
-  program
+  const snapshotCommand = program
     .command("snapshot")
-    .description("Create an AI configuration snapshot")
-    .action(() => snapshotAction());
+    .description("Create or inspect AI configuration snapshots");
+
+  snapshotCommand
+    .command("list")
+    .description("List stored snapshots")
+    .action(() => snapshotListAction());
+
+  snapshotCommand.action(() => snapshotAction());
 
   program
     .command("diff")
-    .description("Show AI configuration changes between snapshots")
-    .argument("[from]", "snapshot file path to diff against (default: latest)")
-    .action((from?: string) => diffAction(from));
+    .description(
+      "Show AI configuration changes between a snapshot and current state",
+    )
+    .argument("[from]", "snapshot id to diff against (default: latest)")
+    .option("--json", "output privacy-safe JSON diff")
+    .action((from: string | undefined, opts: { json?: boolean }) =>
+      diffAction(from, opts),
+    );
 
   program
     .command("config")
