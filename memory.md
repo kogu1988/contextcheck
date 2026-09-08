@@ -493,4 +493,34 @@ README. Çekirdek marka "ContextCheck" (başlık çıktısı) korundu.
 
 ### Güvenlik notu
 Beta publish için paylaşılan npm token sohbete düşmüştü ve publish yetkili.
-Kullanıcıya İPTAL etmesi söylendi; yeni token üretmesi gerektiği not edildi.  
+Kullanıcıya İPTAL etmesi söylendi; yeni token üretmesi gerektiği not edildi.
+
+---
+
+## Feature Freeze (dağıtım aşaması)
+
+Ürün teknik çekirdeği yayında ve doğrulandı. Artık döngü kodu geliştirmeye
+doğru değil, kullanıcı sinyaline doğru:
+
+```
+PUBLIC BETA -> ilk 5 kullanıcı -> ilk gerçek repo'lar -> finding feedback
+-> kullanıcı davranışı -> ürün kararı
+```
+
+**Yapılmayacaklar (bilinçli):** Health Score, AI analysis, dashboard, telemetry,
+cloud, team features. İlk kullanıcı ne istediğini görmeden bunları inşa etmek
+için gerekçe yok.
+
+**Gelen feedback 4 kategoriye ayrılır:**
+1. **Bug** — beklenen davranış gerçekleşmiyor
+2. **False positive** — finding teknik olarak yanlış
+3. **False negative** — important bir şey kaçırılıyor
+4. **Product signal** — araç doğru çalışıyor ama kullanıcı değeri yetersiz
+   (EN DEĞERLİ; ilk üçü kodla çözülür, dördüncüsü ürünü sorgulatır)
+
+**Politika:** Launch -> kullanıcı sinyali -> analiz -> yalnızca KANITLANMIŞ
+probleme müdahale. Laboratuvardan çıktı; insanların gerçekten kullanıp
+kullanmayacağını öğreniyoruz.
+
+**KPI:** indirme değil; analyze -> snapshot -> context değişikliği -> diff
+-> tekrar kullanım. Product signal'a göre karar.  
