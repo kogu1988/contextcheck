@@ -15,6 +15,11 @@ import { discover } from "../discovery/discover.js";
 import { renderDiff, renderReport } from "../output/terminal.js";
 import { serializeReport } from "../output/json.js";
 import {
+  isValidFailThreshold,
+  shouldFailOnSeverity,
+  type FailThreshold,
+} from "../analyzer/severity.js";
+import {
   buildSnapshot,
   latestSnapshotFile,
   loadSnapshotFile,
@@ -33,6 +38,7 @@ function placeholder(commandName: string): void {
 export async function analyzeAction(opts: {
   verbose?: boolean;
   json?: boolean;
+  failOn?: string;
 }): Promise<void> {
   const rootPath = process.cwd();
   const options = await loadConfig(rootPath);
@@ -41,10 +47,29 @@ export async function analyzeAction(opts: {
   if (opts.json) {
     // Privacy-safe DTO: raw configuration content is never serialized (Rule 23).
     process.stdout.write(`${serializeReport(report)}\n`);
-    return;
+  } else {
+    process.stdout.write(`${renderReport(report, opts.verbose === true)}\n`);
   }
 
-  process.stdout.write(`${renderReport(report, opts.verbose === true)}\n`);
+  // Exit-code policy: informational by default; only `--fail-on` fails CI.
+  const failOn = normalizeFailThreshold(opts.failOn);
+  if (failOn && shouldFailOnSeverity(report.findings, failOn)) {
+    process.exitCode = 1;
+  }
+}
+
+/** Parses `--fail-on` into a validated threshold, or undefined when absent. */
+function normalizeFailThreshold(
+  value: string | undefined,
+): FailThreshold | undefined {
+  if (!value) return undefined;
+  if (isValidFailThreshold(value)) return value;
+  // eslint-disable-next-line no-console
+  console.error(
+    `[contextcheck] Invalid --fail-on value "${value}". ` +
+      `Use one of: info, notice, warning. Defaulting to informational.`,
+  );
+  return undefined;
 }
 
 /** `contextcheck snapshot` — records current AI configuration. */
@@ -100,6 +125,10 @@ function buildProgram(): Command {
     .description("Discover and analyze AI coding configuration files")
     .option("--verbose", "show detailed findings")
     .option("--json", "output machine-readable JSON")
+    .option(
+      "--fail-on <severity>",
+      "fail with exit 1 on finding severity (info|notice|warning)",
+    )
     .action(async (opts) => analyzeAction(opts));
 
   program

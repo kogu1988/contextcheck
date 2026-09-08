@@ -66,6 +66,35 @@ describe("CLI analyze integration", () => {
     expect(out).toContain("Difference");
   });
 
+  it("exit code policy: informational by default, --fail-on gates CI", async () => {
+    // Content with a strong high-stakes signal -> CAUTION (severity notice).
+    await writeFile(
+      join(root, "CLAUDE.md"),
+      "Never commit credentials or api keys.\n",
+    );
+
+    const prevExit = process.exitCode;
+    process.exitCode = 0;
+
+    await captureStdout(() => analyzeAction({ json: true }));
+    // Default: informational -> exit 0 despite findings.
+    expect(process.exitCode).toBe(0);
+
+    await captureStdout(() => analyzeAction({ json: true, failOn: "notice" }));
+    // CAUTION (notice) present -> exit 1.
+    expect(process.exitCode).toBe(1);
+
+    process.exitCode = prevExit;
+  });
+
+  it("invalid --fail-on gracefully stays informational (exit 0)", async () => {
+    await writeFile(join(root, "CLAUDE.md"), "Never commit secrets.\n");
+    process.exitCode = 0;
+    await captureStdout(() => analyzeAction({ json: true, failOn: "bogus" }));
+    expect(process.exitCode).toBe(0);
+    process.exitCode = 0;
+  });
+
   it("snapshot output is privacy-safe (no content field on disk)", async () => {
     await writeFile(join(root, "CLAUDE.md"), "# Rules\nsecret rule body\n");
     await captureStdout(() => snapshotAction());

@@ -1,0 +1,34 @@
+name: ContextCheck
+
+on:
+  pull_request:
+  push:
+
+jobs:
+  contextcheck:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout full history
+        uses: actions/checkout@v4
+        with:
+          # Full history (not shallow) so scoped-no-match can reason over the
+          # Git window. A shallow checkout is detected and handled gracefully
+          # (Rule 26) — scoped-rule review findings are simply skipped.
+          fetch-depth: 0
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build
+        run: npm run build
+
+      - name: Run contextcheck analyze (dogfood from repo)
+        # Informational by default: findings never fail CI on their own.
+        # Add `--fail-on notice` (or warning) once you decide findings gate CI.
+        # Once published to npm, replace with: npx contextcheck analyze --json
+        run: node dist/cli/index.js analyze --json
