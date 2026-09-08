@@ -129,34 +129,65 @@ function compactDetail(finding: Finding): string {
   }
 }
 
-/** Renders a snapshot diff in the Spec §30 format. */
-export function renderDiff(diff: SnapshotDiff): string {
+/** Renders a snapshot diff in the Snapshot/Diff v1 format. */
+export function renderDiff(
+  diff: SnapshotDiff,
+  beforeLabel = "previous",
+  afterLabel = "current",
+): string {
   const lines: string[] = [];
-  lines.push("contextcheck CONFIG DIFF");
+  lines.push("ContextCheck Diff");
+  lines.push("");
+  lines.push(`Snapshot: ${beforeLabel} → ${afterLabel}`);
   lines.push("");
 
-  for (const file of diff.files) {
-    if (file.status === "unchanged") continue;
-
-    lines.push(file.path);
-    if (file.status === "added") {
-      lines.push(`  + new rule (${formatTokens(file.afterTokens)} tokens)`);
-    } else if (file.status === "removed") {
-      lines.push(`  - removed (${formatTokens(file.beforeTokens)} tokens)`);
-    } else {
-      const sign = file.delta >= 0 ? "+" : "-";
-      lines.push(`  ${sign} ${formatTokens(Math.abs(file.delta))} tokens`);
+  lines.push("Artifacts");
+  const changedFiles = diff.files.filter((f) => f.status !== "unchanged");
+  if (changedFiles.length === 0) {
+    lines.push("  (no configuration file changes)");
+  } else {
+    for (const file of changedFiles) {
+      const mark =
+        file.status === "added" ? "+" : file.status === "removed" ? "-" : "~";
+      lines.push(`  ${mark} ${file.path}`);
+      if (file.status === "changed") {
+        lines.push(
+          `     ${formatTokens(file.beforeTokens)} → ${formatTokens(file.afterTokens)} tokens`,
+        );
+      }
     }
   }
 
   lines.push("");
-  lines.push("Estimated context:");
-  lines.push(`  Previous     ~${formatTokens(diff.beforeTokens)}`);
-  lines.push(`  Current      ~${formatTokens(diff.afterTokens)}`);
-  const sign = diff.delta >= 0 ? "+" : "-";
+  lines.push("Context");
+  lines.push(`  Previous  ~${formatTokens(diff.beforeTokens)} tokens`);
+  lines.push(`  Current   ~${formatTokens(diff.afterTokens)} tokens`);
+  const deltaSign = diff.delta >= 0 ? "+" : "-";
   lines.push(
-    `  Difference   ${sign}${formatTokens(Math.abs(diff.delta))} tokens`,
+    `  Change    ${deltaSign}${formatTokens(Math.abs(diff.delta))} tokens`,
   );
+
+  lines.push("");
+  lines.push("Findings");
+  if (diff.findingChanges.unchanged === 0 && diff.findings.length === 0) {
+    lines.push("  (no findings recorded)");
+  } else {
+    if (diff.findingChanges.changed > 0)
+      lines.push(`  ~ ${diff.findingChanges.changed} changed`);
+    if (diff.findingChanges.added > 0)
+      lines.push(`  + ${diff.findingChanges.added} new`);
+    if (diff.findingChanges.removed > 0)
+      lines.push(`  - ${diff.findingChanges.removed} resolved`);
+    if (diff.findingChanges.unchanged > 0)
+      lines.push(`  = ${diff.findingChanges.unchanged} unchanged`);
+  }
+
+  lines.push("");
+  const added = changedFiles.filter((f) => f.status === "added").length;
+  const changed = changedFiles.filter((f) => f.status === "changed").length;
+  const removed = changedFiles.filter((f) => f.status === "removed").length;
+  lines.push(`Summary`);
+  lines.push(`  ${added} added · ${changed} modified · ${removed} removed`);
 
   return lines.join("\n");
 }

@@ -11,7 +11,6 @@ import { Command } from "commander";
 import { version } from "../index.js";
 import { loadConfig } from "../config/load.js";
 import { runAnalyze } from "../analyzer/run.js";
-import { discover } from "../discovery/discover.js";
 import {
   renderCompactReport,
   renderDiff,
@@ -79,16 +78,18 @@ function normalizeFailThreshold(
   return undefined;
 }
 
-/** `contextcheck snapshot` — records current AI configuration. */
+/** `contextcheck snapshot` — records current AI configuration + findings. */
 export async function snapshotAction(): Promise<void> {
   const rootPath = process.cwd();
-  const { artifacts } = await discover(rootPath);
-  const snapshot = buildSnapshot(artifacts);
+  const options = await loadConfig(rootPath);
+  // Capture analysis findings so a snapshot reflects the full context state.
+  const { report } = await runAnalyze({ rootPath, options });
+  const snapshot = buildSnapshot(report.artifacts, report.findings);
   const file = await saveSnapshot(rootPath, snapshot);
   // eslint-disable-next-line no-console
   console.log(
     `Snapshot saved: ${snapshot.id} (${snapshot.configurationFiles} files, ` +
-      `~${snapshot.estimatedTokens} tokens)`,
+      `~${snapshot.estimatedTokens} tokens, ${report.findings.length} findings)`,
   );
   void file;
 }
@@ -96,13 +97,13 @@ export async function snapshotAction(): Promise<void> {
 /** `contextcheck diff` — compares latest snapshot vs current state. */
 export async function diffAction(from?: string): Promise<void> {
   const rootPath = process.cwd();
-  const { artifacts } = await discover(rootPath);
-  const currentSnapshot = buildSnapshot(artifacts);
+  const options = await loadConfig(rootPath);
+  const { report } = await runAnalyze({ rootPath, options });
+  const currentSnapshot = buildSnapshot(report.artifacts, report.findings);
 
   let before;
   if (from) {
-    const file = await loadSnapshotFile(from);
-    before = file;
+    before = await loadSnapshotFile(from);
   } else {
     const latest = await latestSnapshotFile(rootPath);
     if (!latest) {

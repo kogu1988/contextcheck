@@ -61,9 +61,12 @@ describe("CLI analyze integration", () => {
       "# Rules\n- strict\n- more rules here\n",
     );
     const out = await captureStdout(() => diffAction());
-    expect(out).toContain("contextcheck CONFIG DIFF");
-    expect(out).toContain("CLAUDE.md");
-    expect(out).toContain("Difference");
+    expect(out).toContain("ContextCheck Diff");
+    expect(out).toContain("Snapshot: previous → current");
+    expect(out).toContain("~ CLAUDE.md");
+    expect(out).toContain("Context");
+    expect(out).toContain("Change");
+    expect(out).toContain("Summary");
   });
 
   it("exit code policy: informational by default, --fail-on gates CI", async () => {

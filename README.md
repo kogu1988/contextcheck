@@ -56,7 +56,7 @@ contextcheck analyze --json    -> CI / automation (privacy-safe)
 - `contextcheck analyze --compact` — hızlı/kompakt insan çıktısı
 - `contextcheck analyze --fail-on <info|notice|warning>` — eşik üstü finding'de exit 1
 - `contextcheck snapshot` — AI configuration snapshot oluştur
-- `contextcheck diff` — en son snapshot ile mevcut durumu karşılaştır
+- `contextcheck diff` — en son snapshot ile mevcut durumu karşılaştır (artifact + token + finding değişimleri)
 - `contextcheck config` — yapılandırma (`.contextcheck.json`)
 
 ## Exit code politkası
@@ -72,6 +72,38 @@ contextcheck analyze --fail-on notice
 
 `--fail-on` değeri finding **severity** kullanır (info < notice < warning).
 Label→severity: INFO/CONTEXT → info, REVIEW/CAUTION → notice.
+
+## Diff (snapshot → current)
+
+`contextcheck diff`, context layer'ın zaman içindeki değişimini gösterir:
+artifact (eklenen/silinmiş/değişen dosyalar), toplam context token değişimi ve
+**analiz bulgularının değişimi** (yeni/çözülen/değişen finding):
+
+```text
+ContextCheck Diff
+
+Snapshot: previous → current
+
+Artifacts
+  ~ CLAUDE.md
+     59 → 70 tokens
+
+Context
+  Previous  ~235 tokens
+  Current   ~246 tokens
+  Change    +11 tokens
+
+Findings
+  + 1 new
+  = 1 unchanged
+
+Summary
+  0 added · 1 modified · 0 removed
+```
+
+Bu, "context layer değişti ve bunun sonucunda hangi bulgular ortaya
+çıktı/kayboldu?" sorusunu cevaplar — model performansıyla ilgili kausal iddia
+**değildir** (Spec §28).
 
 ## GitHub Actions (CI)
 

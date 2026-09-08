@@ -1,8 +1,14 @@
 import { describe, expect, it } from "vitest";
 
-import { diffBetweenSnapshots, diffSnapshots, formatTokens } from "./diff.js";
+import {
+  diffBetweenSnapshots,
+  diffSnapshots,
+  findFindingChanges,
+  formatTokens,
+} from "./diff.js";
 import { renderDiff } from "../output/terminal.js";
 import { buildSnapshot } from "./manager.js";
+import { makeFinding } from "../analyzer/rules/mapping.js";
 import { makeArtifact } from "../../test/helpers/artifact.js";
 
 describe("diffSnapshots (Spec §30)", () => {
@@ -59,8 +65,77 @@ describe("diffSnapshots (Spec §30)", () => {
   });
 });
 
-describe("renderDiff (Spec §30)", () => {
-  it("renders token changes and totals", () => {
+describe("findFindingChanges", () => {
+  it("detects added, resolved and unchanged findings by id", () => {
+    const before = [
+      makeFinding({
+        type: "duplicate",
+        filePaths: ["a.md"],
+        title: "a",
+        description: "d",
+      }),
+    ];
+    const after = [
+      makeFinding({
+        type: "duplicate",
+        filePaths: ["a.md"],
+        title: "a",
+        description: "d",
+      }),
+      makeFinding({
+        type: "high-stakes",
+        filePaths: ["b.md"],
+        title: "b",
+        description: "d",
+      }),
+    ];
+
+    const changes = findFindingChanges(before, after);
+    const byStatus = Object.fromEntries(changes.map((c) => [c.status, c]));
+    expect(byStatus.unchanged).toBeTruthy();
+    expect(byStatus.added).toBeTruthy();
+    // duplicate (unchanged) + high-stakes (added)
+    expect(changes.length).toBe(2);
+  });
+
+  it("marks a finding with the same type+paths but different id as changed", () => {
+    const f1 = makeFinding({
+      type: "high-stakes",
+      filePaths: ["x.mdc"],
+      title: "Old title",
+      description: "d",
+    });
+    const f2 = makeFinding({
+      type: "high-stakes",
+      filePaths: ["x.mdc"],
+      title: "New title",
+      description: "d",
+    });
+    // Different title => different deterministic id.
+    expect(f1.id).not.toBe(f2.id);
+
+    const changes = findFindingChanges([f1], [f2]);
+    expect(changes).toHaveLength(1);
+    expect(changes[0]!.status).toBe("changed");
+  });
+
+  it("treats missing snapshot findings as empty (backward compatible)", () => {
+    const after = [
+      makeFinding({
+        type: "duplicate",
+        filePaths: ["a.md"],
+        title: "a",
+        description: "d",
+      }),
+    ];
+    const changes = findFindingChanges([], after);
+    expect(changes).toHaveLength(1);
+    expect(changes[0]!.status).toBe("added");
+  });
+});
+
+describe("renderDiff (Snapshot/Diff v1)", () => {
+  it("renders artifacts, context and findings sections", () => {
     const before = [
       makeArtifact({ path: "CLAUDE.md", content: "a".repeat(2400) }),
     ]; // 600
@@ -68,23 +143,38 @@ describe("renderDiff (Spec §30)", () => {
       makeArtifact({ path: "CLAUDE.md", content: "a".repeat(1600) }),
     ]; // 400
 
-    const diff = diffSnapshots(before, after);
+    const beforeFindings = [
+      makeFinding({
+        type: "high-stakes",
+        filePaths: ["CLAUDE.md"],
+        title: "t",
+        description: "d",
+      }),
+    ];
+    const diff = diffSnapshots(before, after, beforeFindings, []);
     const out = renderDiff(diff);
 
-    expect(out).toContain("contextcheck CONFIG DIFF");
-    expect(out).toContain("CLAUDE.md");
-    expect(out).toContain("- 200 tokens");
-    expect(out).toContain("Previous     ~600");
-    expect(out).toContain("Current      ~400");
-    expect(out).toContain("Difference   -200 tokens");
+    expect(out).toContain("ContextCheck Diff");
+    expect(out).toContain("Snapshot: previous → current");
+    expect(out).toContain("Artifacts");
+    expect(out).toContain("~ CLAUDE.md");
+    expect(out).toContain("600 → 400 tokens");
+    expect(out).toContain("Context");
+    expect(out).toContain("Previous  ~600 tokens");
+    expect(out).toContain("Change    -200 tokens");
+    expect(out).toContain("Findings");
+    expect(out).toContain("- 1 resolved");
+    expect(out).toContain("Summary");
+    expect(out).toContain("0 added · 1 modified · 0 removed");
   });
 
-  it("renders a new rule", () => {
+  it("renders a new rule artifact", () => {
     const before = [] as ReturnType<typeof makeArtifact>[];
     const after = [makeArtifact({ path: "api.mdc", content: "x".repeat(400) })];
     const diff = diffSnapshots(before, after);
     const out = renderDiff(diff);
-    expect(out).toContain("+ new rule");
+    expect(out).toContain("+ api.mdc");
+    expect(out).toContain("1 added · 0 modified · 0 removed");
   });
 
   it("is consistent with formatTokens", () => {

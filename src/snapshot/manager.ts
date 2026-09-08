@@ -13,6 +13,7 @@ import { join } from "node:path";
 import { createHash } from "node:crypto";
 
 import type { ConfigurationArtifact } from "../types/configuration.js";
+import type { Finding } from "../types/finding.js";
 import { toArtifactJson } from "../output/json.js";
 
 export const SNAPSHOT_DIR = ".contextcheck/snapshots";
@@ -33,10 +34,15 @@ export interface Snapshot {
   skills: number;
   estimatedTokens: number;
   artifacts: SnapshotEntry[];
+  /** Analysis findings at snapshot time. Optional for backward compatibility. */
+  findings?: Finding[];
 }
 
-/** Builds a snapshot from a discovery result (content excluded). */
-export function buildSnapshot(artifacts: ConfigurationArtifact[]): Snapshot {
+/** Builds a snapshot from a discovery result + findings (content excluded). */
+export function buildSnapshot(
+  artifacts: ConfigurationArtifact[],
+  findings: Finding[] = [],
+): Snapshot {
   const entries: SnapshotEntry[] = artifacts.map((a) => toArtifactJson(a));
   const createdAt = new Date().toISOString();
 
@@ -50,6 +56,7 @@ export function buildSnapshot(artifacts: ConfigurationArtifact[]): Snapshot {
       0,
     ),
     artifacts: entries,
+    findings,
   };
 }
 
