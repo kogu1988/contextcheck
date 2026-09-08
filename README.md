@@ -2,6 +2,9 @@
 
 > **See what your AI coding context contains, what changed, and what deserves review.**
 
+> **Beta:** `contextcheck` şu anda beta kanalında yayınlanıyor. Kullanım:
+> `npm install -g contextcheck@beta` veya `npx contextcheck@beta analyze`.
+
 contextcheck, AI coding agent'ların kullandığı instructions, rules ve skills
 dosyalarını (CLAUDE.md, AGENTS.md, .cursor/rules, SKILL.md) keşfeden,
 deterministic olarak analiz eden ve context layer'ın zaman içindeki değişimini
@@ -16,16 +19,23 @@ takip etmeni sağlayan **local-first** bir developer tooludur.
 
 ```bash
 # 1) Mevcut AI context'ini gör
-npx contextcheck analyze
+npx contextcheck@beta analyze
 
 # 2) Bir anlık görüntü al
-contextcheck snapshot
+npx contextcheck@beta snapshot
 
 # 3) Kurallarında değişiklik yap, ne değiştiğini gör
-contextcheck diff
+npx contextcheck@beta diff
 ```
 
 Bunların hepsi hesap gerektirmez, hiçbir içerik cihazından çıkmaz.
+
+Global kurulum tercih edersen:
+
+```bash
+npm install -g contextcheck@beta
+contextcheck analyze
+```
 
 ## Kullanım
 
@@ -150,9 +160,9 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with:
-          fetch-depth: 0   # scoped-no-match Git history için tam geçmiş
-      - run: npx contextcheck analyze --fail-on notice   # CI gate
-      - run: npx contextcheck analyze --compact          # PR log
+          fetch-depth: 0 # scoped-no-match Git history için tam geçmiş
+      - run: npx contextcheck analyze --fail-on notice # CI gate
+      - run: npx contextcheck analyze --compact # PR log
 ```
 
 `fetch-depth: 0` önemli: shallow checkout'u ContextCheck tespit eder ve
@@ -182,3 +192,22 @@ npm run lint      # eslint
 ## Lisans
 
 MIT — bkz. [LICENSE](LICENSE).
+
+## Yayınlama (maintainer)
+
+Beta kanalına yayın (kontrollü, mevcut `latest`'i korur):
+
+```bash
+npm login
+npm publish --tag beta
+```
+
+Beta'yı test et:
+
+```bash
+npm install -g contextcheck@beta
+npx contextcheck@beta analyze
+```
+
+Stabil sürüm hazır olduğunda `--tag latest` ile (veya `npm dist-tag add contextcheck@<version> latest`)
+mevcut sürümü `latest` kanalına taşı.
