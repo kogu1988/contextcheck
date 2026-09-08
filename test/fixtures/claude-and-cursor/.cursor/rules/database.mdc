@@ -1,0 +1,11 @@
+---
+description: "Database rule"
+globs:
+  - "src/db/**/*.ts"
+alwaysApply: false
+---
+
+# Database Rule
+
+- Use parameterized queries.
+- Never commit real credentials.

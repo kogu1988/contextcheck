@@ -1,0 +1,10 @@
+alwaysApply: false
+globs:
+  - "src/**/*.tsx"
+  - "src/**/*.ts"
+
+# Code Style Rule
+
+- Prefer named exports.
+- Order imports: node, packages, local.
+- No default exports for components.
