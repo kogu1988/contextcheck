@@ -1,25 +1,31 @@
 # contextcheck
 
-> AI coding configuration intelligence layer
+> **See what your AI coding context contains, what changed, and what deserves review.**
 
-contextcheck, AI coding agent'lar tarafından kullanılan instructions, rules ve
-skills dosyalarını keşfeden, deterministic olarak analiz eden ve context
-maliyeti hakkında açıklanabilir bilgiler sunan local-first bir developer
-tooludur.
+contextcheck, AI coding agent'ların kullandığı instructions, rules ve skills
+dosyalarını (CLAUDE.md, AGENTS.md, .cursor/rules, SKILL.md) keşfeden,
+deterministic olarak analiz eden ve context layer'ın zaman içindeki değişimini
+takip etmeni sağlayan **local-first** bir developer tooludur.
 
 - Local-first: içerik makineden çıkmaz
-- Deterministic: analyzers LLM çağrısı yapmaz
+- Deterministic: LLM/embedding/API/DB yok
 - Açıklanabilir: her finding ne/neden/hangi dosya açıklamalı
+- Review, never remove: otomatik silme/düzeltme yok
 
-## Kurulum
+## Hızlı Başlangıç (ilk 30 saniye)
 
 ```bash
-# Global
-npm install -g contextcheck
-
-# veya npx ile
+# 1) Mevcut AI context'ini gör
 npx contextcheck analyze
+
+# 2) Bir anlık görüntü al
+contextcheck snapshot
+
+# 3) Kurallarında değişiklik yap, ne değiştiğini gör
+contextcheck diff
 ```
+
+Bunların hepsi hesap gerektirmez, hiçbir içerik cihazından çıkmaz.
 
 ## Kullanım
 

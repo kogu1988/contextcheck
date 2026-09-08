@@ -39,9 +39,10 @@
   "publishConfig": {
     "access": "public"
   },
+  "homepage": "https://github.com/kogu1988/contextcheck#readme",
   "repository": {
     "type": "git",
-    "url": "https://github.com/contextcheck/contextcheck.git"
+    "url": "git+https://github.com/kogu1988/contextcheck.git"
   },
   "scripts": {
     "build": "tsc",
