@@ -1,0 +1,57 @@
+name: Feature Request
+description: Suggest a capability (problem-first — feature listesi değil).
+title: "[Feature] "
+labels: ["feature"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Özellik istemeden önce: **çözmeye çalıştığın problemi** tanımla.
+        Bizim için 10 kullanıcının "şu özelliği ekle" demesi, yeni ürün çıkarmak
+        değil; hangi gerçek problemi yaşadıklarını görmek demek. Bu form,
+        özelliğin arkasındaki problemi yakalamak için tasarlandı.
+
+        > Not: Bu beta'da Health Score, AI analysis, dashboard, cloud sync,
+        > telemetry gibi büyük özellikler bilinçli olarak YOK ve en kısa sürede
+        > gelmeyecek. Bu yüzden "genişlet"ten önce "daralt / netleştir" çoğu
+        > zaman daha değerli.
+
+  - type: textarea
+    id: problem
+    attributes:
+      label: Çözülmesi gereken gerçek problem
+      description: "'Dashboard' değil — seni ne durduruyor? Somut senaryo."
+      placeholder: "Örn: 12 farklı rule dosyam var, hangisinin aktif olduğunu
+        bilemiyorum ve hangisini silmenin güvenli olduğundan emin olamıyorum."
+    validations:
+      required: true
+
+  - type: textarea
+    id: current-workaround
+    attributes:
+      label: Şu an nasıl çözüyorsun?
+      description: Bu olmadan ne yapıyorsun? (manuel / başka araç / yok)
+    validations:
+      required: false
+
+  - type: textarea
+    id: proposed
+    attributes:
+      label: Aklındaki çözüm
+      description: "Çözümün ne olduğundan çok problemi anlamamız önemli; çözüm önerin farklı olabilir."
+    validations:
+      required: false
+
+  - type: checkboxes
+    id: scope
+    attributes:
+      label: Kapsam anlayışı
+      options:
+        - label: Bu özellik mevcut çekirdeğin (analyze → snapshot → diff → CI) değerini bozmamalı
+          required: true
+
+  - type: markdown
+    attributes:
+      value: |
+        > "Bu neyi çözer?" sorusuna net cevap veremezsen muhtemelen yakında
+        > roadmap'e girmeyecek. Problem netleşirse değer hızlıca anlaşılır.

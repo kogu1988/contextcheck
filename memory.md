@@ -452,4 +452,45 @@ Sonuçlar:
 
 ### Sıradaki (Milestone 3 devamı)
 npm/public beta: `npx contextcheck analyze` + README vaadi. Health Score/
-AI correlation/dashboard/cloud/embeddings/LLM/team DOKUNULMADI.  
+AI correlation/dashboard/cloud/embeddings/LLM/team DOKUNULMADI.
+
+---
+
+## Milestone 4 — Public Beta (yayınlandı)
+
+**npm yayını:** `@kogu/context-check@0.1.0` (beta tag).
+
+Engeller ve çözüm:
+- `contextcheck` npm'de `vkolluru1974` tarafından alınmış -> publish reddedildi.
+- `context-check` npm "too similar to contextcheck" -> reddedildi.
+- Çözüm: **scoped `@kogu/context-check`** (npm'in kendi önerisi). Publish + install
+  doğrulandı (`npm install @kogu/context-check@beta` çalışıyor).
+
+Doğrulama: `npx @kogu/context-check analyze` çalışıyor. (`npm view` 404 vermesine
+rağmen install çalışıyor — registry read quirk'i; install kesin kanıt.)
+
+**İsim değişikliği:** paket adı + bin (`context-check`) + CLI help + renderer +
+README. Çekirdek marka "ContextCheck" (başlık çıktısı) korundu.
+
+### Launch altyapısı
+- `docs/launch/hacker-news.md` — ana launch metni (Show HN)
+- `docs/launch/reddit.md` — problem-first, subreddit notları
+- `docs/launch/social.md` — X/LinkedIn/Mastodon kısa
+- `.github/ISSUE_TEMPLATE/bug.yml`, `feedback.yml`, `feature.yml`, `config.yml`
+  - **feedback bug'dan ayrıldı** (beta'nın en değerli sinyali: 'çalışıyor ama
+    kullanır mıyım').
+  - **feature request frenli** (problem-first: 'dashboard' değil, hangi problemi
+    çözüyorsun).
+  - config.yml: blank issues kapalı, feedback'e yönlendirme.
+
+### Strateji (kullanıcı edinimi)
+- 500 yıldız değil, **5 kaliteli failure report** hedefi.
+- İlk 5-10 kullanıcı gerçek repo + AI agent kullanan geliştiricilerden.
+- Feedback 3 kritik soru: 1) doğru geldi mi? 2) sonra context değiştirdin mi?
+  3) snapshot→diff tekrar kullanır mısın?
+- KPI: ikinci kullanım (workflow tool dönüşümü).
+- Health Score / AI analysis / dashboard / cloud / telemetry / team: YOK (bilinçli).
+
+### Güvenlik notu
+Beta publish için paylaşılan npm token sohbete düşmüştü ve publish yetkili.
+Kullanıcıya İPTAL etmesi söylendi; yeni token üretmesi gerektiği not edildi.  

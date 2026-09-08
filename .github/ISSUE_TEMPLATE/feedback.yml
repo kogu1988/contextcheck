@@ -1,0 +1,67 @@
+name: Product Feedback
+description: "It works, but would/should I actually use it? (beta'nın en değerli sinyali)"
+title: "[Feedback] "
+labels: ["feedback"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Bu template'in amacı "çalışmıyor"dan farklı bir şey: **ürün gerçekten
+        bir işe yarıyor mu?** Beta'da asıl aradığımız bu. Soruları dürüstçe
+        cevapla — "evet/çalışıyor" tek başına yeterli değil.
+
+  - type: textarea
+    id: did-it-make-sense
+    attributes:
+      label: ContextCheck sana doğru geldi mi?
+      description: Analiz çıktısı beklediğinle uyumlu mu? (false positive / false negative)
+      placeholder: "Örn: 'high-stakes' bulgusu gerçekten yüksek riskliydi, 'deploy'
+        için aldığım CAUTION yanlıştı." 
+    validations:
+      required: true
+
+  - type: dropdown
+    id: changed-context
+    attributes:
+      label: "Bulgu gördükten sonra context dosyanı değiştirdin mi?"
+      options:
+        - "Evet, doğrudan değişiklik yaptım"
+        - "Değişiklik düşündüm ama yapmadım"
+        - "Hayır, hiçbir şey yapmadım"
+      description: Bu, ürünün eylem yaratıp yaratmadığının en net ölçütü.
+    validations:
+      required: true
+
+  - type: dropdown
+    id: re-snapshot-diff
+    attributes:
+      label: "Snapshot → diff iş akışını tekrar kullanır mısın?"
+      options:
+        - "Evet, ikinci kez kullandım"
+        - "Kullanmayı planlıyorum"
+        - "Hayır, tek seferlik baktım"
+      description: İkinci kullanım, ürünün "CLI utility"den "workflow tool"e geçişinin kanıtı.
+    validations:
+      required: true
+
+  - type: textarea
+    id: what-would-make-it-useful
+    attributes:
+      label: Seni düzenli kullanmaya itecek tek şey ne?
+      placeholder: "Hangi problem senin için gerçek? Hangi kısım gürültü?"
+    validations:
+      required: false
+
+  - type: textarea
+    id: confusing
+    attributes:
+      label: Kafa karıştıran / yanıltıcı olan ne?
+      description: "CONTEXT / REVIEW / CAUTION ayrımı, terminology, çıktı düzeni."
+    validations:
+      required: false
+
+  - type: markdown
+    attributes:
+      value: |
+        > Bu bir bug raporu değil; "çalışmıyor" türü sorun için Bug Report
+        > template'ini kullan. Bu form, ürünün değer önerisini ölçmek için.

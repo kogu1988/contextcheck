@@ -1,0 +1,80 @@
+name: Bug Report
+description: Something is broken or produces an unexpected result.
+title: "[Bug] "
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        ContextCheck'in yanlış/istenmeyen davranışını bildir. Beta'da en değerli
+        sinyal "çalışmıyor" değil, **analiz nerede yanlış** — o yüzden adımları
+        net doldur.
+
+  - type: input
+    id: command
+    attributes:
+      label: Çalıştırdığın komut
+      description: "Örn: `npx @kogu/context-check@beta analyze --json`"
+    validations:
+      required: true
+
+  - type: textarea
+    id: expected
+    attributes:
+      label: Beklenen davranış
+      description: Ne olmasını bekliyordun?
+    validations:
+      required: true
+
+  - type: textarea
+    id: actual
+    attributes:
+      label: Gerçekte olan
+      description: Ne oldu? (hata çıktısı / JSON / terminal parçası)
+    validations:
+      required: true
+
+  - type: textarea
+    id: repro
+    attributes:
+      label: Minimal repro
+      description: |
+        Mümkünse küçük bir repo/örnek yapı ver. "kendi repo'mda oldu" yerine
+        izole edilebilir bir örnek çok daha hızlı kök neden buldurur.
+        **Not:** Raw config içeriğini payload olarak paylaşma — privacy-safe
+        `--json` çıktısını kullan.
+      placeholder: |
+        CLAUDE.md (anonimleştirilmiş):
+        ```
+        # Rules
+        ...
+        ```
+        Komut:
+        ```
+        npx @kogu/context-check@beta analyze
+        ```
+    validations:
+      required: false
+
+  - type: input
+    id: version
+    attributes:
+      label: Sürüm
+      description: "`@kogu/context-check@0.1.0` veya `node --version`"
+    validations:
+      required: false
+
+  - type: markdown
+    attributes:
+      value: |
+        > **Gizlilik:** Raw `content` alanı JSON'da asla yoktur (Rule 23). Lütfen
+        > çıktı olarak da raw config body'sini gönderme; `--json` ve metadata
+        > yeterli.
+
+  - type: checkboxes
+    id: privacy
+    attributes:
+      label: Gizlilik onayı
+      options:
+        - label: Paylaştığım çıktı raw configuration içeriği içermiyor
+          required: true

@@ -1,0 +1,9 @@
+# GitHub Issue template config
+blank_issues_enabled: false
+contact_links:
+  - name: Product Feedback
+    url: https://github.com/kogu1988/contextcheck/issues/new?template=feedback.yml
+    about: "Beta'da en değerli sinyal: çalışıyor ama kullanır mısın? (false pos/neg, eylem)"
+  - name: ContextCheck GitHub repo
+    url: https://github.com/kogu1988/contextcheck
+    about: "Kaynak repo, README, beta kurulum."
