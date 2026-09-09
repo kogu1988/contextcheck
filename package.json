@@ -1,6 +1,6 @@
 {
   "name": "@kogu/context-check",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "AI coding configuration intelligence layer — local-first lint, analysis and versioning for AI coding instructions",
   "type": "module",
   "license": "MIT",
