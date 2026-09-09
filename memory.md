@@ -497,6 +497,46 @@ Kullanıcıya İPTAL etmesi söylendi; yeni token üretmesi gerektiği not edild
 
 ---
 
+## Onboarding + Proje Yönetimi (Mi5)
+
+Local-first project registry + first-run onboarding. Hiçbir repo'ya
+kurulum/entegrasyon/file gerektirmez; repoya dokunmaz (registry user-level).
+
+- `src/projects/paths.ts` — Windows-aware path normalization + canonical
+  dedup key (trailing sep, `.`/`..`, case-insensitive on win32).
+- `src/projects/registry.ts` — JSON registry (version 1) in OS config dir
+  (Win `%APPDATA%\contextcheck\projects.json`; POSIX `~/.config/...`).
+  Injectable baseDir (tests). Local id `proj_<hex>`, URL'den türetilmez.
+- `src/projects/detect.ts` — likely-project signals (.git/package.json/
+  pyproject/Cargo/go.mod/pom/build.gradle/composer), immediate children only,
+  junk excluded (node_modules/dist/build/caches/Downloads/Documents).
+- `src/projects/prompts.ts` — built-in `node:readline/promises` (NO new dep),
+  `isInteractive()` CI-safe (TTY + CI/NO_PROMPT/TERM=dumb).
+- `src/projects/actions.ts` — list/add/remove/scan/analyze-all. `scan` confirms
+  before add; non-interactive NEVER auto-adds (safe default).
+- `src/projects/onboarding.ts` — first-run menu (add single / folder / multiple /
+  skip). Only triggers on bare/`projects` with empty registry + interactive.
+- CLI: `projects` group (add/remove/scan/analyze) + bare `context-check`
+  first-run. `analyze`/`snapshot`/`diff`/`--json`/`--compact` NEVER trigger
+  onboarding (CI-safe).
+
+### Compt tespitler / korunan davranışlar
+- `context-check analyze` her zaman cwd-based (backward compat); registry'deki
+  her projeyi değil. `projects analyze` ayrı command (snapshot oluşturmaz).
+- Snapshot storage repo-local (`.contextcheck/snapshots/`) korundu; projeler
+  arası izolasyon test edildi.
+- `projects remove` asla dizini silmez (registry-only).
+- Privacy: registry modules hiçbir network client import etmez (statik test).
+- Registry asla repo URL/source/instruction content send etmez.
+
+### Testler
++38 project tests (paths/registry/detect/actions/onboarding + CLI integration).
+Toplam 219. Kabul: 20 senaryo (onboarding, add/remove/scan, drive letters,
+path normalization, duplicate, missing project, cwd analyze compat, non-interactive,
+CI, no-AI-config, snapshot isolation, registry persist/corrupt, privacy).
+
+---
+
 ## Feature Freeze (dağıtım aşaması)
 
 Ürün teknik çekirdeği yayında ve doğrulandı. Artık döngü kodu geliştirmeye

@@ -66,17 +66,53 @@ npm install -g @kogu/context-check@beta
 
 ## Komutlar
 
-- `@kogu/@kogu/context-check analyze` — keşfet ve analiz et
+- `@kogu/context-check analyze` — keşfet ve analiz et
 - `@kogu/context-check analyze --verbose` — detaylı bulgular
 - `@kogu/context-check analyze --json` — privacy-safe JSON (raw content yok)
 - `@kogu/context-check analyze --compact` — hızlı/kompakt insan çıktısı
 - `@kogu/context-check analyze --fail-on <info|notice|warning>` — eşik üstü finding'de exit 1
-- `@kogu/@kogu/context-check snapshot` — AI configuration snapshot oluştur
+- `@kogu/context-check snapshot` — AI configuration snapshot oluştur
 - `@kogu/context-check snapshot list` — kayıtlı snapshot'ları listele
 - `@kogu/context-check diff` — en son snapshot ile mevcut durumu karşılaştır (artifact + token + finding değişimleri)
 - `@kogu/context-check diff <snapshot-id>` — belirtilen snapshot ile mevcut durumu karşılaştır
 - `@kogu/context-check diff --json` — privacy-safe JSON diff
 - `@kogu/context-check config` — yapılandırma (`.contextcheck.json`)
+
+## Proje Yönetimi (local registry)
+
+ContextCheck'i bir kez kur; istediğin kadar yerel projeyi ekle. Her repoya
+kurulum/entegrasyon yok, repoya kendi dosyanı ekletmez.
+
+```bash
+# Kayıtlı projeleri listele
+@kogu/context-check projects
+
+# Proje ekle (bir veya birden fazla yol)
+@kogu/context-check projects add C:\Projects\PetPal D:\Dev\RoutineMe
+
+# Mevcut dizini kaydet
+@kogu/context-check projects add .
+
+# Bir klasördeki muhtemel alt projeleri tara (recursion yok; onay ister)
+@kogu/context-check projects scan D:\Projects
+
+# Kayıttan çıkar (gerçek dizine DOKUNMAZ)
+@kogu/context-check projects remove <id|path>
+
+# Kayıtlı TÜM projeleri analiz et (snapshot oluşturmaz)
+@kogu/context-check projects analyze
+```
+
+Registry, OS uygulama/config dizininde yerel bir JSON dosyadır:
+
+```text
+Windows:  %APPDATA%\contextcheck\projects.json
+POSIX:    ~/.config/contextcheck/projects.json
+```
+
+**Önemli:** `projects remove` yalnızca registry'den çıkarır; proje dizinini
+asla silmez/değiştirmez. `context-check analyze` her zaman **mevcut dizini**
+analiz eder (registry'deki her projeyi değil) — mevcut davranış korunur.
 
 ## Exit code politkası
 

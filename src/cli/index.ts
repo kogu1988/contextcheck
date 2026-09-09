@@ -32,6 +32,16 @@ import {
   saveSnapshot,
 } from "../snapshot/manager.js";
 import { diffBetweenSnapshots } from "../snapshot/diff.js";
+import {
+  addProjects,
+  analyzeAllProjects,
+  listProjects,
+  removeProjects,
+  scanProjects,
+} from "../projects/actions.js";
+import { runOnboarding } from "../projects/onboarding.js";
+import { loadRegistry } from "../projects/registry.js";
+import { isInteractive } from "../projects/prompts.js";
 
 /** Placeholder for not-yet-implemented commands. */
 function placeholder(commandName: string): void {
@@ -164,6 +174,42 @@ export async function snapshotListAction(): Promise<void> {
   console.log(lines.join("\n"));
 }
 
+/** `context-check projects` — list registered projects. */
+export async function projectsAction(): Promise<void> {
+  const reg = await loadRegistry();
+  if (reg.projects.length === 0 && isInteractive()) {
+    // First run -> onboarding.
+    await runOnboarding();
+    return;
+  }
+  const { output } = await listProjects();
+  process.stdout.write(`${output}\n`);
+}
+
+/** `context-check projects add [path...]`. */
+export async function projectsAddAction(paths: string[]): Promise<void> {
+  const { output } = await addProjects(paths);
+  process.stdout.write(`${output}\n`);
+}
+
+/** `context-check projects remove <id|path>`. */
+export async function projectsRemoveAction(refs: string[]): Promise<void> {
+  const { output } = await removeProjects(refs);
+  process.stdout.write(`${output}\n`);
+}
+
+/** `context-check projects scan <dir>` — detect likely child projects. */
+export async function projectsScanAction(parent: string): Promise<void> {
+  const { output } = await scanProjects(parent);
+  process.stdout.write(`${output}\n`);
+}
+
+/** `context-check projects analyze` — analyze every registered project. */
+export async function projectsAnalyzeAction(): Promise<void> {
+  const { output } = await analyzeAllProjects();
+  process.stdout.write(`${output}\n`);
+}
+
 function buildProgram(): Command {
   const program = new Command();
 
@@ -171,6 +217,19 @@ function buildProgram(): Command {
     .name("context-check")
     .description("AI coding configuration intelligence layer")
     .version(version);
+
+  // Bare `context-check` (no subcommand): onboarding on first run, else a
+  // helpful status. `analyze`/`snapshot`/`diff` never trigger onboarding.
+  program.action(async () => {
+    const reg = await loadRegistry();
+    if (reg.projects.length === 0 && isInteractive()) {
+      await runOnboarding();
+    } else {
+      process.stdout.write(
+        "Run `context-check analyze` to analyze this project, or `context-check projects` to manage projects.\n",
+      );
+    }
+  });
 
   program
     .command("analyze")
@@ -205,6 +264,37 @@ function buildProgram(): Command {
     .action((from: string | undefined, opts: { json?: boolean }) =>
       diffAction(from, opts),
     );
+
+  const projectsCommand = program
+    .command("projects")
+    .description("Manage local AI configuration projects");
+
+  projectsCommand
+    .command("add")
+    .description("Add one or more project paths to the registry")
+    .argument("[paths...]", "project paths (default: current directory)")
+    .action((paths: string[] | undefined) =>
+      projectsAddAction(paths && paths.length > 0 ? paths : [process.cwd()]),
+    );
+
+  projectsCommand
+    .command("remove")
+    .description("Remove projects from the local registry (never deletes them)")
+    .argument("<refs...>", "project id or paths to remove")
+    .action((refs: string[]) => projectsRemoveAction(refs));
+
+  projectsCommand
+    .command("scan")
+    .description("Detect likely child projects in a folder (no recursion)")
+    .argument("[dir]", "parent directory (default: current directory)")
+    .action((dir?: string) => projectsScanAction(dir ?? process.cwd()));
+
+  projectsCommand
+    .command("analyze")
+    .description("Analyze every registered project")
+    .action(() => projectsAnalyzeAction());
+
+  projectsCommand.action(() => projectsAction());
 
   program
     .command("config")
