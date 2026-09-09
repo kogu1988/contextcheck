@@ -1,4 +1,4 @@
-import { mkdir, mkdtemp, rm, writeFile } from "node:fs/promises";
+import { mkdir, mkdtemp, rm, symlink, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 
@@ -65,5 +65,20 @@ describe("detect", () => {
 
   it("returns empty for a missing parent", async () => {
     expect(await findLikelyProjects(join(parent, "nope"))).toEqual([]);
+  });
+
+  it("follows a symlinked project directory when supported", async () => {
+    // Create a real dir with a signal, then a symlink to it inside parent.
+    const real = await mkdtemp(join(tmpdir(), "cc-realdir-"));
+    await writeFile(join(real, "package.json"), "{}");
+    try {
+      await symlink(real, join(parent, "LinkedProj"), "dir");
+    } catch {
+      // Symlinks are often gated by permissions/privileges on Windows; skip
+      // rather than fail when the platform does not allow it.
+      return;
+    }
+    const found = await findLikelyProjects(parent);
+    expect(found.some((c) => c.name === "LinkedProj")).toBe(true);
   });
 });

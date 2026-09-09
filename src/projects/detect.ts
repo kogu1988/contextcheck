@@ -75,31 +75,39 @@ export async function findLikelyProjects(
 ): Promise<ProjectCandidate[]> {
   if (!pathExists(parentPath)) return [];
 
-  let entries: string[];
+  // `withFileTypes` avoids a stat call for the common (non-directory) case,
+  // keeping large parents cheap. Symlink-to-directory entries are resolved via
+  // `stat` (which follows the link), so a symlinked project still counts.
+  let entries: import("node:fs").Dirent[];
   try {
-    entries = await readdir(parentPath);
+    entries = await readdir(parentPath, { withFileTypes: true });
   } catch {
     return [];
   }
 
   const candidates: ProjectCandidate[] = [];
-  for (const name of entries) {
-    if (isExcluded(name)) continue;
-    const child = join(parentPath, name);
+  for (const entry of entries) {
+    if (isExcluded(entry.name)) continue;
+    const child = join(parentPath, entry.name);
+
+    const isDirLike = entry.isDirectory() || entry.isSymbolicLink();
+    if (!isDirLike) continue;
+
+    // Resolve the entry to confirm it's a directory (follows symlinks).
     try {
       const s = await stat(child);
       if (!s.isDirectory()) continue;
     } catch {
       continue;
     }
-    if (await isLikelyProject(child)) {
-      candidates.push({ path: child, name, signal: await firstSignal(child) });
-    }
+
+    const signal = firstSignal(child);
+    if (signal) candidates.push({ path: child, name: entry.name, signal });
   }
   return candidates.sort((a, b) => a.name.localeCompare(b.name));
 }
 
-async function firstSignal(dir: string): Promise<string | undefined> {
+function firstSignal(dir: string): string | undefined {
   for (const s of PROJECT_SIGNALS) {
     if (existsSync(join(dir, s))) return s;
   }

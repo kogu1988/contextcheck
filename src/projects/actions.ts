@@ -96,10 +96,12 @@ export async function removeProjects(
   const removed: string[] = [];
 
   for (const ref of refs) {
-    const before = reg.projects.length;
+    const entry = resolveRef(reg, ref);
+    if (!entry) continue;
     // removeProject accepts id OR path; it never deletes the directory.
-    removeProject(reg, ref, process.cwd());
-    if (reg.projects.length < before) removed.push(ref);
+    removeProject(reg, entry.id, process.cwd());
+    // Report the STORED display path (not the user-typed ref).
+    removed.push(entry.path);
   }
 
   await saveRegistry(reg, opts.baseDir);

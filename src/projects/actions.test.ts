@@ -57,6 +57,17 @@ describe("project actions", () => {
     expect(hasDir(parent)).toBe(true);
   });
 
+  it("remove reports the stored display path even when removing by id", async () => {
+    await addProjects([parent], { baseDir });
+    const { entries } = await listProjects({ baseDir });
+    const id = entries[0]!.id;
+    const { output, removed } = await removeProjects([id], { baseDir });
+    expect(removed).toHaveLength(1);
+    // Stored normalized path (not the user-typed id) is reported.
+    expect(output).toContain(entries[0]!.path);
+    expect(output).toContain("Removed from registry");
+  });
+
   it("marks missing projects in analyzeAll without failing", async () => {
     // Register a real project, then also register a fake (moved/deleted) path.
     await addProjects([parent], { baseDir });
