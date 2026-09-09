@@ -34,6 +34,13 @@ Thumbs.db
 # Tool-local state (repo-local snapshots / registry if ever written here)
 .contextcheck/
 
+# Internal / contributor-only files (not for end users)
+Product & Technical Master Specification v1.2.md
+AGENTS.md
+memory.md
+docs/launch/
+test/
+
 # Misc
 tmp/
 .tmp/
